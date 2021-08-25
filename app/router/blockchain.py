@@ -28,26 +28,32 @@ def update_balances(key: str, db: Session):
         print(e)
         return {"success": False, "message": "Error occured while updating balances in database."}
 
-def fetch_sol_balance(key: str):
-    # try:
-    obj = Solscan(key)
-    res = obj.get_solana_balance()
-    return res
-    # except Exception as e:
-    #     print(e)
-
-
-@router.get("get_key_balances")
+@router.get("/get_key_balances")
 async def get_key_balances(key: str, db: Session = Depends(get_db)):
     res = get_available_balances()
     return res
 
-@router.post("update_balances_in_db")
+@router.post("/update_balances_in_db")
 async def update_balances_in_db(key: str, db: Session = Depends(get_db)):
     res = update_balances(key, db)
     return res
 
-@router.get("get_sol_balance")
+@router.get("/get_sol_balance")
 async def get_sol_balance(key: str):
-    res = fetch_sol_balance(key)
-    return res
+    try:
+        obj = Solscan(key)
+        res = obj.get_solana_balance()
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while getting solana balance."}
+
+@router.get("/get_tokens")
+async def get_tokens(limit: int, offset: int):
+    try:
+        obj = Solscan()
+        res = obj.get_tokens(limit, offset)
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while getting tokens."}

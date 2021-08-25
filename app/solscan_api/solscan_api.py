@@ -9,7 +9,7 @@ BASE_URL = os.environ.get("SOLSCAN_BASE_URL")
 
 
 class Solscan():
-    def __init__(self, publicKey):
+    def __init__(self, publicKey = None):
         self.publicKey = publicKey
 
     def update_balances_in_db(self, userId):
@@ -22,7 +22,7 @@ class Solscan():
             }
             resp = requests.get(url, params=params)
             data = resp.json()
-            if data['succcess'] == True:
+            if data['succcess']:
                 for row in data["data"]:
                     db_data.append({
                         "userId": userId,
@@ -51,7 +51,7 @@ class Solscan():
             params = {"address": self.publicKey}
             bal_resp = requests.get(bal_url, params=params)
             bal_data = bal_resp.json()
-            if bal_data['succcess'] == True:
+            if bal_data['succcess']:
                 lamports = bal_data['data']['lamports']
                 sol = lamports / 1000000000
             else:
@@ -61,7 +61,7 @@ class Solscan():
             params = {"symbol": "SOL"}
             price_resp = requests.get(price_url, params=params)
             price_data = price_resp.json()
-            if price_data['success'] == True:
+            if price_data['success']:
                 price = price_data['data']['priceUsdt']
             else:
                 return {"success": False, "message": "Error occured while fetching balance."}
@@ -77,3 +77,17 @@ class Solscan():
         except Exception as e:
             print(e)
             return {"success": False, "message": "Error occured while fetching balance."}
+
+    def get_tokens(self, limit, offset):
+        try:
+            url = "{}/tokens".format(BASE_URL)
+            params = {"limit": limit, "offset": offset}
+            token_resp = requests.get(url, params=params)
+            token_data = token_resp.json()
+            if token_data['succcess']:
+                return token_data['data']
+            else:
+                return {"success": False, "message": "Error occured while fetching tokens."}
+        except Exception as e:
+            print(e)
+            return {"success": False, "message": "Error occured while fetching tokens."}
