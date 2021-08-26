@@ -30,7 +30,7 @@ def update_balances(key: str, db: Session):
 
 @router.get("/get_key_balances")
 async def get_key_balances(key: str, db: Session = Depends(get_db)):
-    res = get_available_balances()
+    res = get_available_balances(key, db)
     return res
 
 @router.post("/update_balances_in_db")
@@ -57,3 +57,13 @@ async def get_tokens(limit: int, offset: int):
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occured while getting tokens."}
+
+@router.get("/save_tokens")
+async def save_tokens():
+    try:
+        obj = Solscan()
+        res = obj.save_tokens()
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while saving tokens."}

@@ -50,6 +50,18 @@ class Balances(Base):
     __table_args__ = (UniqueConstraint('userId', 'tokenSymbol', 'tokenAccount', name='_token_balance_uq'),)
 
 
+class SolanaTokens(Base):
+    __tablename__ = "solanaTokens"
+    id = Column(Integer, primary_key=True, index=True)
+    address = Column(String)
+    chainId = Column(Integer)
+    decimals = Column(Integer)
+    logoURI = Column(String)
+    name = Column(String)
+    symbol = Column(String)
+    __table_args__ = (UniqueConstraint('address', 'symbol', 'chainId', 'decimals', 'logoURI', 'name', 'symbol', name='_token_name_uq'),)
+
+
 def add_update_balances(rows: list):
     try:
         db = SessionLocal()
@@ -63,3 +75,18 @@ def add_update_balances(rows: list):
     except Exception as e:
         print(e)
         return False
+
+def add_update_tokens(rows: list):
+    try:
+        db = SessionLocal()
+        model = SolanaTokens
+        table = model.__table__
+        stmt = insert(table).values(rows)
+        on_conflict = stmt.on_conflict_do_update(constraint='_token_name_uq', set_={'chainId': stmt.excluded.chainId, 'decimals': stmt.excluded.decimals, 'logoURI': stmt.excluded.logoURI, 'name': stmt.excluded.name, 'symbol': stmt.excluded.symbol})
+        db.execute(on_conflict)
+        db.commit()
+    except Exception as e:
+        print(e)
+        return False
+
+
