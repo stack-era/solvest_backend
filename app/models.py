@@ -31,6 +31,7 @@ class SolanaTokens(Base):
     logoURI = Column(String)
     name = Column(String)
     symbol = Column(String)
+    priceAvailable = Column(Boolean)
     __table_args__ = (UniqueConstraint('address', 'symbol', 'chainId', 'decimals', 'logoURI', 'name', 'symbol', name='_token_name_uq'),)
 
 
@@ -38,7 +39,10 @@ class SolvestTokens(Base):
     __tablename__ = "solvestTokens"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True)
+    symbol = Column(String, unique=True)
     underlyingTokens = Column(Integer)
+    latestPrice = Column(DECIMAL)
+    lastupdateTimestamp = Column(TIMESTAMP)
 
 
 class UnderlyingTokens(Base):

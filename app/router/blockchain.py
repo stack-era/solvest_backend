@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from database import *
 from app.solscan_api.solscan_api import Solscan
 from .. import models
@@ -27,6 +27,10 @@ def update_balances(key: str, db: Session):
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occured while updating balances in database."}
+
+def save_tokens_in_db():
+    obj = Solscan()
+    obj.save_tokens()
 
 @router.get("/get_key_balances")
 async def get_key_balances(key: str, db: Session = Depends(get_db)):
@@ -59,10 +63,10 @@ async def get_tokens(limit: int, offset: int):
         return {"success": False, "message": "Error occured while getting tokens."}
 
 @router.get("/save_tokens")
-async def save_tokens():
+async def save_tokens(background_tasks: BackgroundTasks):
     try:
-        obj = Solscan()
-        res = obj.save_tokens()
+        background_tasks.add_task(save_tokens_in_db)
+        res = {"success": True, "message": "Updating tokens in DB."}
         return res
     except Exception as e:
         print(e)
