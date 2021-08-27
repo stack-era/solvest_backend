@@ -25,7 +25,7 @@ class Balances(Base):
 class SolanaTokens(Base):
     __tablename__ = "solanaTokens"
     id = Column(Integer, primary_key=True, index=True)
-    address = Column(String)
+    address = Column(String, unique=True)
     chainId = Column(Integer)
     decimals = Column(Integer)
     logoURI = Column(String)
@@ -34,6 +34,28 @@ class SolanaTokens(Base):
     __table_args__ = (UniqueConstraint('address', 'symbol', 'chainId', 'decimals', 'logoURI', 'name', 'symbol', name='_token_name_uq'),)
 
 
-# class SolvestTokens(Base):
-#     __tablename__ = "solvestTokens"
-#     id = Column(Integer, primary_key=True, index=True)
+class SolvestTokens(Base):
+    __tablename__ = "solvestTokens"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+    underlyingTokens = Column(Integer)
+
+
+class UnderlyingTokens(Base):
+    __tablename__ = "underlyingTokens"
+    id = Column(Integer, primary_key=True, index=True)
+    address = Column(String, ForeignKey(SolanaTokens.address))
+    parentToken = Column(Integer, ForeignKey(SolvestTokens.id))
+    symbol = Column(String)
+    name = Column(String)
+    weight = Column(DECIMAL)
+
+
+class TokensPriceHistory(Base):
+    __tablename__ = "tokenPriceHistory"
+    id = Column(Integer, primary_key=True, index=True)
+    address = Column(String, ForeignKey(SolanaTokens.address))
+    name = Column(String)
+    symbol = Column(String)
+    timestamp = Column(TIMESTAMP)
+    price = Column(DECIMAL)

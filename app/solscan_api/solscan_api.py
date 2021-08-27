@@ -102,16 +102,19 @@ class Solscan():
             if tokens_response.status_code == 200:
                 data = tokens_response.json()
                 for token in data['tokens']:
-                    db_data.append({
-                        "address": token['address'],
-                        "chainId": token['chainId'],
-                        "decimals": token['decimals'],
-                        "logoURI": token['logoURI'] if 'logoURI' in token else None,
-                        "name": token['name'],
-                        "symbol": token['symbol']
-                    })
-                add_update_tokens(db_data)
-                return {"success": True, "message": "Updated tokens in database."}
+                    if token['chainId'] == 101:
+                        db_data.append({
+                            "address": token['address'],
+                            "chainId": token['chainId'],
+                            "decimals": token['decimals'],
+                            "logoURI": token['logoURI'] if 'logoURI' in token else None,
+                            "name": token['name'],
+                            "symbol": token['symbol']
+                        })
+                if add_update_tokens(db_data) != False:
+                    return {"success": True, "message": "Updated tokens in database."}
+                else:
+                    return {"success": False, "message": "Error occured while saving tokens"}
             else:
                 return {"success": False, "message": "Error occured while saving tokens"}
         except Exception as e:
@@ -184,6 +187,3 @@ class Solscan():
             resp = requests.get(url, params=params)
             print(resp)
             print(resp.json())
-
-# obj = Solscan("Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT")
-# obj.save_historical_portfolio(1)
