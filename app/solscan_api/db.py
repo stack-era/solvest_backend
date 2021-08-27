@@ -59,6 +59,7 @@ class SolanaTokens(Base):
     logoURI = Column(String)
     name = Column(String)
     symbol = Column(String)
+    priceAvailable = Column(Boolean)
     __table_args__ = (UniqueConstraint('address', 'symbol', 'chainId', 'decimals', 'logoURI', 'name', 'symbol', name='_token_name_uq'),)
 
 
@@ -82,11 +83,25 @@ def add_update_tokens(rows: list):
         model = SolanaTokens
         table = model.__table__
         stmt = insert(table).values(rows)
-        on_conflict = stmt.on_conflict_do_update(constraint='_token_name_uq', set_={'chainId': stmt.excluded.chainId, 'decimals': stmt.excluded.decimals, 'logoURI': stmt.excluded.logoURI, 'name': stmt.excluded.name, 'symbol': stmt.excluded.symbol})
+        on_conflict = stmt.on_conflict_do_update(constraint='_token_name_uq', set_={'chainId': stmt.excluded.chainId, 'decimals': stmt.excluded.decimals, 'logoURI': stmt.excluded.logoURI, 'name': stmt.excluded.name, 'symbol': stmt.excluded.symbol, 'priceAvailable': stmt.excluded.priceAvailable})
         db.execute(on_conflict)
         db.commit()
     except Exception as e:
         print(e)
         return False
 
+# def get_solvest_tokens():
+#     try:
+        
+#     except Exception as e:
+#         print(e)
+#         return False
 
+def get_all_tokens():
+    try:
+        db = SessionLocal()
+        res = db.query(SolanaTokens).with_entities(SolanaTokens.symbol).filter(SolanaTokens.priceAvailable).all()
+        return res
+    except Exception as e:
+        print(e)
+        return False

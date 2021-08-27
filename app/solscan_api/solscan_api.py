@@ -8,6 +8,7 @@ DOTENV_PATH = os.path.join(os.path.dirname(__file__), '../../.env')
 load_dotenv(DOTENV_PATH)
 BASE_URL = os.environ.get("SOLSCAN_BASE_URL")
 TOKENS_URL = os.environ.get("SOLANA_TOKENS_URL")
+COINCAP_URL = os.environ.get("COINCAP_PRICE_URL")
 
 
 class Solscan():
@@ -103,13 +104,21 @@ class Solscan():
                 data = tokens_response.json()
                 for token in data['tokens']:
                     if token['chainId'] == 101:
+                        priceAvailable = False
+                        params = {"baseSymbol": token['symbol']}
+                        price_res = requests.get(COINCAP_URL, params=params)
+                        print(price_res)
+                        price_res = price_res.json()
+                        if price_res['data']:
+                            priceAvailable = True
                         db_data.append({
                             "address": token['address'],
                             "chainId": token['chainId'],
                             "decimals": token['decimals'],
                             "logoURI": token['logoURI'] if 'logoURI' in token else None,
                             "name": token['name'],
-                            "symbol": token['symbol']
+                            "symbol": token['symbol'],
+                            "priceAvailable": priceAvailable
                         })
                 if add_update_tokens(db_data) != False:
                     return {"success": True, "message": "Updated tokens in database."}
