@@ -91,3 +91,13 @@ async def save_tokens(background_tasks: BackgroundTasks):
 async def get_solvest_tokens(db: Session = Depends(get_db)):
     res = fetch_solvest_tokens(db)
     return res
+
+@router.get("/get_token_transactions")
+async def get_token_transactions(address: str, before: str = None):
+    try:
+        obj = Solscan()
+        res = obj.get_token_transactions(address, before)
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while saving tokens"}

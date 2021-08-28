@@ -130,6 +130,21 @@ class Solscan():
             print(e)
             return {"success": False, "message": "Error occured while saving tokens"}
 
+    def get_token_transactions(self, token_address, before):
+        try:
+            token_trasactions_url = "{}/account/transaction".format(BASE_URL)
+            params = {"address": token_address}
+            if before:
+                params["before"] = before
+            res = requests.get(token_trasactions_url, params=params)
+            if res.status_code == 200:
+                return res.json()
+            else:
+                return {"success": False, "message": "Error occured while saving tokens"}
+        except Exception as e:
+            print(e)
+            return {"success": False, "message": "Error occured while saving tokens"}
+
     def save_historical_portfolio(self, userId):
         # Get transactions, loop through them to find token chaneges and save to db
         one_year_ago_epoch = int((datetime.now() - timedelta(days=365)).timestamp())
