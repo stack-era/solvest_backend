@@ -13,7 +13,7 @@ def save_sol_tokens_prices():
         all_tokens = get_underlying_tokens()
         db_data = list()
         for token in all_tokens:
-            time.sleep(1)
+            time.sleep(2)
             params = {"baseSymbol": token.symbol}
             res = requests.get(COINCAP_URL, params=params)
             print(res)
