@@ -9,35 +9,42 @@ load_dotenv(DOTENV_PATH)
 COINCAP_URL = os.environ.get("COINCAP_PRICE_URL")
 
 def save_sol_tokens_prices():
-    all_tokens = get_underlying_tokens()
-    db_data = list()
-    for token in all_tokens:
-        time.sleep(1)
-        params = {"baseSymbol": token.symbol}
-        res = requests.get(COINCAP_URL, params=params)
-        print(res)
-        data = res.json()
-        if data['data']:
-            db_data.append({
-                "address": token.address,
-                "name": token.name,
-                "symbol": token.symbol,
-                "price": data['data'][0]['priceUsd']
-            })
-    if db_data:
-        save_tokens_price(db_data)
+    try:
+        all_tokens = get_underlying_tokens()
+        db_data = list()
+        for token in all_tokens:
+            time.sleep(1)
+            params = {"baseSymbol": token.symbol}
+            res = requests.get(COINCAP_URL, params=params)
+            print(res)
+            if res.status_code == 200:
+                data = res.json()
+                if data['data']:
+                    db_data.append({
+                        "address": token.address,
+                        "name": token.name,
+                        "symbol": token.symbol,
+                        "price": data['data'][0]['priceUsd']
+                    })
+        if db_data:
+            save_tokens_price(db_data)
+    except Exception as e:
+        print(e)
 
 
 def save_solvest_token_price():
-    tokens = get_solvest_tokens()
-    print(tokens)
-    updated_price_dic = dict()
-    for token in tokens:
-        if token.solvest_symbol not in updated_price_dic:
-            updated_price_dic[token.solvest_symbol] = 0
-        updated_price_dic[token.solvest_symbol] += token.weight * token.price
-    print(updated_price_dic)
-    update_solvest_tokens_price(updated_price_dic)
+    try:
+        tokens = get_solvest_tokens()
+        print(tokens)
+        updated_price_dic = dict()
+        for token in tokens:
+            if token.solvest_symbol not in updated_price_dic:
+                updated_price_dic[token.solvest_symbol] = 0
+            updated_price_dic[token.solvest_symbol] += token.weight * token.price
+        print(updated_price_dic)
+        update_solvest_tokens_price(updated_price_dic)
+    except Exception as e:
+        print(e)
 
 
 if __name__ == '__main__':
