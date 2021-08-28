@@ -1,13 +1,20 @@
 from db import get_underlying_tokens, save_tokens_price, get_solvest_tokens, update_solvest_tokens_price
-import requests
+import requests, os, time
+from dotenv import load_dotenv
+
+# ENV Variables
+DOTENV_PATH = os.path.join(os.path.dirname(__file__), '../../.env')
+load_dotenv(DOTENV_PATH)
+
+COINCAP_URL = os.environ.get("COINCAP_PRICE_URL")
 
 def save_sol_tokens_prices():
-    url = "http://api.coincap.io/v2/markets"
     all_tokens = get_underlying_tokens()
     db_data = list()
     for token in all_tokens:
+        time.sleep(1)
         params = {"baseSymbol": token.symbol}
-        res = requests.get(url, params=params)
+        res = requests.get(COINCAP_URL, params=params)
         print(res)
         data = res.json()
         if data['data']:
