@@ -1,17 +1,38 @@
-from db import get_all_tokens
-import requests, time
+from db import get_underlying_tokens, save_tokens_price, get_solvest_tokens, update_solvest_tokens_price
+import requests
 
-def main():
+def save_sol_tokens_prices():
     url = "http://api.coincap.io/v2/markets"
-    all_tokens = get_all_tokens()
+    all_tokens = get_underlying_tokens()
+    db_data = list()
     for token in all_tokens:
         params = {"baseSymbol": token.symbol}
         res = requests.get(url, params=params)
         print(res)
         data = res.json()
         if data['data']:
-            # print(data['data'][0])
-            print(data['data'][0]['priceUsd'])
+            db_data.append({
+                "address": token.address,
+                "name": token.name,
+                "symbol": token.symbol,
+                "price": data['data'][0]['priceUsd']
+            })
+    if db_data:
+        save_tokens_price(db_data)
+
+
+def save_solvest_token_price():
+    tokens = get_solvest_tokens()
+    print(tokens)
+    updated_price_dic = dict()
+    for token in tokens:
+        if token.solvest_symbol not in updated_price_dic:
+            updated_price_dic[token.solvest_symbol] = 0
+        updated_price_dic[token.solvest_symbol] += token.weight * token.price
+    print(updated_price_dic)
+    update_solvest_tokens_price(updated_price_dic)
+
 
 if __name__ == '__main__':
-    main()
+    save_sol_tokens_prices()
+    save_solvest_token_price()

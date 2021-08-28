@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
+from sqlalchemy.sql import case
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import Column, ForeignKey, Integer, String, TIMESTAMP, DECIMAL,Boolean, UniqueConstraint
@@ -63,6 +64,36 @@ class SolanaTokens(Base):
     __table_args__ = (UniqueConstraint('address', 'symbol', 'chainId', 'decimals', 'logoURI', 'name', 'symbol', name='_token_name_uq'),)
 
 
+class TokensPriceHistory(Base):
+    __tablename__ = "tokenPriceHistory"
+    id = Column(Integer, primary_key=True, index=True)
+    address = Column(String, ForeignKey(SolanaTokens.address))
+    name = Column(String)
+    symbol = Column(String)
+    timestamp = Column(TIMESTAMP)
+    price = Column(DECIMAL)
+
+
+class SolvestTokens(Base):
+    __tablename__ = "solvestTokens"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+    symbol = Column(String, unique=True)
+    underlyingTokens = Column(Integer)
+    latestPrice = Column(DECIMAL)
+    lastupdateTimestamp = Column(TIMESTAMP)
+
+
+class UnderlyingTokens(Base):
+    __tablename__ = "underlyingTokens"
+    id = Column(Integer, primary_key=True, index=True)
+    address = Column(String, ForeignKey(SolanaTokens.address))
+    parentToken = Column(Integer, ForeignKey(SolvestTokens.id))
+    symbol = Column(String)
+    name = Column(String)
+    weight = Column(DECIMAL)
+
+
 def add_update_balances(rows: list):
     try:
         db = SessionLocal()
@@ -90,18 +121,46 @@ def add_update_tokens(rows: list):
         print(e)
         return False
 
-# def get_solvest_tokens():
-#     try:
-        
-#     except Exception as e:
-#         print(e)
-#         return False
-
-def get_all_tokens():
+def get_solvest_tokens():
     try:
         db = SessionLocal()
-        res = db.query(SolanaTokens).with_entities(SolanaTokens.symbol).filter(SolanaTokens.priceAvailable).all()
+        t = db.query(func.max(TokensPriceHistory.timestamp)).scalar_subquery()
+        print(t)
+        res = db.query(SolvestTokens).with_entities(SolvestTokens.symbol.label('solvest_symbol'), UnderlyingTokens.symbol, UnderlyingTokens.weight, TokensPriceHistory.price)\
+                        .join(UnderlyingTokens, UnderlyingTokens.parentToken == SolvestTokens.id).join(TokensPriceHistory, TokensPriceHistory.address == UnderlyingTokens.address)\
+                        .filter(TokensPriceHistory.timestamp == t).all()
         return res
     except Exception as e:
         print(e)
         return False
+
+def get_underlying_tokens():
+    try:
+        db = SessionLocal()
+        res = db.query(SolanaTokens).with_entities(SolanaTokens.symbol, SolanaTokens.address, SolanaTokens.name).join(UnderlyingTokens, UnderlyingTokens.address == SolanaTokens.address)\
+            .group_by(UnderlyingTokens.symbol, SolanaTokens.symbol, SolanaTokens.address, SolanaTokens.name).all()
+        return res
+    except Exception as e:
+        print(e)
+        return False
+
+def save_tokens_price(rows: list):
+    try:
+        db = SessionLocal()
+        time = datetime.utcnow()
+        insertRows = [TokensPriceHistory(address=row['address'], name=row['name'], symbol=row['symbol'], price=row['price'], timestamp=time) for row in rows]
+        db.add_all(insertRows)
+        db.commit()
+    except Exception as e:
+        print(e)
+
+def update_solvest_tokens_price(symbols: list):
+    try:
+        db = SessionLocal()
+        timenow = datetime.utcnow()
+        for symbol in symbols:
+            updated_data = {'latestPrice': symbols[symbol], 'lastupdateTimestamp': timenow}
+            db.query(SolvestTokens).filter(SolvestTokens.symbol == symbol).update(updated_data, synchronize_session=False)
+        db.commit()
+    except Exception as e:
+        print(e)

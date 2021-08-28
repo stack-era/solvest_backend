@@ -32,6 +32,21 @@ def save_tokens_in_db():
     obj = Solscan()
     obj.save_tokens()
 
+def fetch_solvest_tokens(db):
+    try:
+        res = db.query(models.SolvestTokens).with_entities(models.SolvestTokens.symbol.label("solvest_tkn_symbol"), models.SolvestTokens.name.label("solvest_tkn_name"), models.SolvestTokens.latestPrice.label("solvest_tkn_price"), models.UnderlyingTokens.symbol.label("under_tkn_symbol"), models.UnderlyingTokens.name.label("under_tkn_name"), models.UnderlyingTokens.weight.label("under_tkn_weight"))\
+            .join(models.UnderlyingTokens, models.UnderlyingTokens.parentToken == models.SolvestTokens.id).all()
+        response = dict()
+        for row in res:
+            if row.solvest_tkn_symbol not in response:
+                response[row.solvest_tkn_symbol] = {"price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight}}]}
+            else:
+                response[row.solvest_tkn_symbol]["underlyingTokens"].append({row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight}})
+        return response
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while fetching tokens."}
+
 @router.get("/get_key_balances")
 async def get_key_balances(key: str, db: Session = Depends(get_db)):
     res = get_available_balances(key, db)
@@ -71,3 +86,8 @@ async def save_tokens(background_tasks: BackgroundTasks):
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occured while saving tokens."}
+
+@router.get("/get_solvest_tokens")
+async def get_solvest_tokens(db: Session = Depends(get_db)):
+    res = fetch_solvest_tokens(db)
+    return res
