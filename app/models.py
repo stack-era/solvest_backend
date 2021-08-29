@@ -63,3 +63,14 @@ class TokensPriceHistory(Base):
     symbol = Column(String)
     timestamp = Column(TIMESTAMP)
     price = Column(DECIMAL)
+
+
+class UserStreams(Base):
+    __tablename__ = "userStreams"
+    id = Column(Integer, primary_key=True, index=True)
+    userId = Column(Integer, ForeignKey(UsersKey.id))
+    solvestToken = Column(Integer, ForeignKey(SolvestTokens.id))
+    startTimestamp = Column(TIMESTAMP)
+    stopTimestamp = Column(TIMESTAMP)
+    interval = Column(String)
+    active = Column(Boolean)

@@ -1,9 +1,20 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from database import *
 from app.solscan_api.solscan_api import Solscan
-from .. import models
+from .. import models, schemas
+from datetime import datetime
 
 router = APIRouter()
+
+def get_user_id(address: str, db: Session):
+    try:
+        res = db.query(models.UsersKey).with_entities(models.UsersKey.id).filter(models.UsersKey.publicKey == address).first()
+        if not res:
+            return None
+        return res.id
+    except Exception as e:
+        print(e)
+        return False
 
 def get_available_balances(key: str, db: Session):
     try:
@@ -29,23 +40,61 @@ def update_balances(key: str, db: Session):
         return {"success": False, "message": "Error occured while updating balances in database."}
 
 def save_tokens_in_db():
-    obj = Solscan()
-    obj.save_tokens()
+    try:
+        obj = Solscan()
+        obj.save_tokens()
+    except Exception as e:
+        print(e)
 
 def fetch_solvest_tokens(db):
     try:
-        res = db.query(models.SolvestTokens).with_entities(models.SolvestTokens.symbol.label("solvest_tkn_symbol"), models.SolvestTokens.name.label("solvest_tkn_name"), models.SolvestTokens.latestPrice.label("solvest_tkn_price"), models.UnderlyingTokens.symbol.label("under_tkn_symbol"), models.UnderlyingTokens.name.label("under_tkn_name"), models.UnderlyingTokens.weight.label("under_tkn_weight"))\
+        res = db.query(models.SolvestTokens).with_entities(models.SolvestTokens.id, models.SolvestTokens.symbol.label("solvest_tkn_symbol"), models.SolvestTokens.name.label("solvest_tkn_name"), models.SolvestTokens.latestPrice.label("solvest_tkn_price"), models.UnderlyingTokens.symbol.label("under_tkn_symbol"), models.UnderlyingTokens.name.label("under_tkn_name"), models.UnderlyingTokens.weight.label("under_tkn_weight"))\
             .join(models.UnderlyingTokens, models.UnderlyingTokens.parentToken == models.SolvestTokens.id).all()
         response = dict()
         for row in res:
             if row.solvest_tkn_symbol not in response:
-                response[row.solvest_tkn_symbol] = {"price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight}}]}
+                response[row.solvest_tkn_symbol] = {"id": row.id, "price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight}}]}
             else:
                 response[row.solvest_tkn_symbol]["underlyingTokens"].append({row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight}})
         return response
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occured while fetching tokens."}
+
+def save_user_stream(streamData: schemas.StreamCreate, db: Session):
+    try:
+        user_id = get_user_id(streamData.publicAddress, db)
+        if user_id is None:
+            return {"success": False, "message": "User Key not found."}
+        elif user_id == False:
+            return {"success": False, "message": "Error occured while creating stream."}
+        insertStream = models.UserStreams(userId=user_id, solvestToken=streamData.solvesToken, startTimestamp=datetime.utcnow(), interval=streamData.interval, active=True)
+        db.add(insertStream)
+        db.commit()
+        return {"success": True, "message": "Added stream successfully"}
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while adding stream."}
+
+def fetch_key_streams(key: str, db: Session):
+    try:
+        res = db.query(models.UserStreams).join(models.UsersKey, models.UsersKey.id == models.UserStreams.id).filter(models.UsersKey.publicKey == key).all()
+        return res
+    except Exception as e:
+        print(e)
+        return {"status": False, "message": "Error occured while getting streams."}
+
+def stop_user_stream(streamId: int, db: Session):
+    try:
+        updateData = {"active": False, "stopTimestamp": datetime.utcnow()}
+        db.query(models.UserStreams).filter(models.UserStreams.id == streamId).update(updateData, synchronize_session=False)
+        db.commit()
+        return {"success": True, "message": "Stream updated successfully"}
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while updating stream."}
+########################################################################################################
+########################################################################################################
 
 @router.get("/get_key_balances")
 async def get_key_balances(key: str, db: Session = Depends(get_db)):
@@ -101,3 +150,18 @@ async def get_token_transactions(address: str, before: str = None):
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occured while saving tokens"}
+
+@router.post("/save_stream")
+async def save_stream(streamData: schemas.StreamCreate, db: Session = Depends(get_db)):
+    res = save_user_stream(streamData, db)
+    return res
+
+@router.get("/get_streams")
+async def get_streams(publicKey: str, db: Session = Depends(get_db)):
+    res = fetch_key_streams(publicKey, db)
+    return res
+
+@router.get("/stop_stream")
+async def stop_stream(streamId: int, db: Session = Depends(get_db)):
+    res = stop_user_stream(streamId, db)
+    return res

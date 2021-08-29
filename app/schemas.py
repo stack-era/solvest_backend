@@ -1,4 +1,9 @@
-# from typing import List, Optional
-# from datetime import datetime
-# from pydantic import BaseModel
-# from fastapi import Query
+from pydantic import BaseModel
+
+class StreamCreate(BaseModel):
+    publicAddress: str
+    solvesToken: int
+    interval: str
+
+    class Config:
+        orm_mode = True
