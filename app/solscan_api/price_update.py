@@ -11,21 +11,39 @@ COINCAP_URL = os.environ.get("COINCAP_PRICE_URL")
 def save_sol_tokens_prices():
     try:
         all_tokens = get_underlying_tokens()
+        offset = 0
         db_data = list()
-        for token in all_tokens:
-            time.sleep(10)
-            params = {"baseSymbol": token.symbol}
+        updated = list()
+        while len(all_tokens) > len(updated):
+            time.sleep(5)
+            params = {"offset": offset, "limit": 2000}
             res = requests.get(COINCAP_URL, params=params)
-            print(res)
-            if res.status_code == 200:
-                data = res.json()
-                if data['data']:
-                    db_data.append({
-                        "address": token.address,
-                        "name": token.name,
-                        "symbol": token.symbol,
-                        "price": data['data'][0]['priceUsd']
-                    })
+            if res.status_code == 200 and res.json()['data']:
+                for token in all_tokens:
+                    for row in res.json()['data']:
+                        if row['baseSymbol'] == token.symbol and token.symbol not in updated:
+                            print(row['baseSymbol'])
+                            updated.append(row['baseSymbol'])
+                            db_data.append({
+                                "address": token.address,
+                                "name": token.name,
+                                "symbol": token.symbol,
+                                "price": row['priceUsd']
+                            })
+            offset += 2000
+        # for token in all_tokens:
+        #     params = {"baseSymbol": token.symbol}
+        #     res = requests.get(COINCAP_URL, params=params)
+        #     print(res)
+        #     if res.status_code == 200:
+        #         data = res.json()
+        #         if data['data']:
+        #             db_data.append({
+        #                 "address": token.address,
+        #                 "name": token.name,
+        #                 "symbol": token.symbol,
+        #                 "price": data['data'][0]['priceUsd']
+        #             })
         if db_data:
             save_tokens_price(db_data)
     except Exception as e:
