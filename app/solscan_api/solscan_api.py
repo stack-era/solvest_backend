@@ -1,6 +1,6 @@
 import requests, os, time
 from dotenv import load_dotenv
-from .db import add_update_balances, add_update_tokens
+from .db import add_update_balances, add_update_tokens, save_user_historical_portfolio
 from datetime import datetime, timedelta
 
 # ENV Variables
@@ -9,6 +9,9 @@ load_dotenv(DOTENV_PATH)
 BASE_URL = os.environ.get("SOLSCAN_BASE_URL")
 TOKENS_URL = os.environ.get("SOLANA_TOKENS_URL")
 COINCAP_URL = os.environ.get("COINCAP_PRICE_URL")
+SOLBEACH_URL = os.environ.get("SOLBEACH_API_URL")
+SOLBEACH_TOKEN = os.environ.get("SOLBEACH_TOKEN")
+SOL_ADDRESS = "So11111111111111111111111111111111111111112"
 
 
 class Solscan():
@@ -150,64 +153,48 @@ class Solscan():
         one_year_ago_epoch = int((datetime.now() - timedelta(days=365)).timestamp())
         print(one_year_ago_epoch)
         transactions = True
-        previous_tx_hash = None
-        transactions_url = "{}/account/transaction".format(BASE_URL)
-        details_url = "{}/transaction".format(BASE_URL)
-        tx_params = {'address': self.publicKey}
+        transactions_url = "{}/account/{}/transactions".format(SOLBEACH_URL, self.publicKey)
+        headers = {"Authorization": "Bearer {}".format(SOLBEACH_TOKEN)}
+        offset = 0
+        limit = 200
         tmp_balances = dict()
-        db_data = list()
-        # while transactions:
-        #     # transactions var will be False if no more transactions available or if one year transactions are parsed
-        #     if previous_tx_hash:
-        #         tx_params['before'] = previous_tx_hash
-        #     transactions_resp = requests.get(transactions_url, params=tx_params)
-        #     print(transactions_resp)
-        #     # print(transactions_resp.text)
-        #     print(transactions_resp.headers)
-        #     transactions_data = transactions_resp.json()
-        #     # time.sleep(2)
-        #     if transactions_data['succcess'] and transactions_data['data']:
-        #         for tx in transactions_data['data']:
-        #             if tx['blockTime'] > one_year_ago_epoch:
-        #                 # Set previous_tx_hash
-        #                 previous_tx_hash = tx['txHash']
-        #                 params = {'tx': tx['txHash']}
-        #                 detail_resp = requests.get(details_url, params=params)
-        #                 print(detail_resp)
-        #                 print(detail_resp.headers)
-        #                 # print(detail_resp.text)
-        #                 detail_data = detail_resp.json()
-        #                 # time.sleep(1)
-        #                 if 'txStatus' in detail_data and detail_data['txStatus'] == 'finalized':
-        #                     for accounts in detail_data['inputAccount']:
-        #                         if accounts['account'] == self.publicKey:
-        #                             if 'SOL' not in tmp_balances or tmp_balances['SOL'] != accounts['postBalance']:
-        #                                 db_data.append({
-        #                                     "userId": userId,
-        #                                     "account": self.publicKey,
-        #                                     "balanceTimestamp": tx['blockTime'],
-        #                                     "token": "SOL",
-        #                                     "balance": accounts['postBalance']
-        #                                 })
-        #                             tmp_balances['SOL'] = accounts['postBalance']
-        #                     for token in detail_data['tokenBalanes']:
-        #                         name = "{}-{}".format(token['account'], token['token']['symbol'])
-        #                         if name not in tmp_balances or tmp_balances[name] != token['amount']['postAmount']:
-        #                             db_data.append({
-        #                                 "userId": userId,
-        #                                 "account": token['account'],
-        #                                 "balanceTimestamp": tx['blockTime'],
-        #                                 "token": token['token']['symbol'],
-        #                                 "balance": (int(token['amount']['postAmount']) / (10 * token['token']['decimals']))
-        #                             })
-        #                         tmp_balances[name] = token['amount']['postAmount']
-        #             else:
-        #                 transactions = False
-        #                 break
-        # print(db_data)
-        url = "https://prod-api.solana.surf/v1/account/Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT/transactions?"
-        params = {"before": "74Bcv1Aw7r3BG68Tu2tmLrLBV7iWi7UjtzgJ76Ly3NWCL38dkL3D6xCTAeX43zfgGnxBztHvwvLnPttLNoDKnGy+"}
-        for i in range(1000):
-            resp = requests.get(url, params=params)
-            print(resp)
-            print(resp.json())
+        while transactions:
+            db_data = list()
+            # transactions var will be False if no more transactions available or if one year transactions are parsed
+            params = {"limit": limit, "offset": offset}
+            resp = requests.get(transactions_url, params=params, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                if not data:
+                    transactions = False
+                    break
+                for tx in data:
+                    if tx['blocktime']['absolute'] > one_year_ago_epoch:
+                        if SOL_ADDRESS not in tmp_balances or not tmp_balances[SOL_ADDRESS] != tx['meta']['postBalances'][0]:
+                            db_data.append({
+                                "userId": userId,
+                                "balanceTimestamp": datetime.utcfromtimestamp(tx['blocktime']['absolute']),
+                                "tokenAddress": SOL_ADDRESS,
+                                "balance": tx['meta']['postBalances'][0] / 1000000000
+                            })
+                            tmp_balances[SOL_ADDRESS] = tx['meta']['postBalances'][0]
+                        for token in tx['meta']['postTokenBalances']:
+                            if not token['uiTokenAmount']['uiAmount']:
+                                token['uiTokenAmount']['uiAmount'] = 0
+                            if token['mint']['address'] not in tmp_balances or tmp_balances[token['mint']['address']] != token['uiTokenAmount']['uiAmount']:
+                                db_data.append({
+                                    "userId": userId,
+                                    "balanceTimestamp": datetime.utcfromtimestamp(tx['blocktime']['absolute']),
+                                    "tokenAddress": token['mint']['address'],
+                                    "balance": token['uiTokenAmount']['uiAmount']
+                                })
+                                tmp_balances[token['mint']['address']] = token['uiTokenAmount']['uiAmount']
+                    else:
+                        transactions = False
+                        break
+                    offset += 200
+            save_user_historical_portfolio(db_data)
+
+if __name__ == '__main__':
+    obj = Solscan("Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT")
+    obj.save_historical_portfolio(1)

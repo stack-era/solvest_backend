@@ -74,3 +74,12 @@ class UserStreams(Base):
     stopTimestamp = Column(TIMESTAMP)
     interval = Column(String)
     active = Column(Boolean)
+
+
+class UserHistoricalPortfolio(Base):
+    __tablename__ = "userHistoricalPortfolio"
+    id = Column(Integer, primary_key=True, index=True)
+    userId = Column(Integer, ForeignKey(UsersKey.id))
+    tokenAddress = Column(String, ForeignKey(SolanaTokens.address))
+    timestamp = Column(TIMESTAMP)
+    balance = Column(DECIMAL)

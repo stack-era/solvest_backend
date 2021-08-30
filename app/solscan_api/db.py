@@ -94,6 +94,14 @@ class UnderlyingTokens(Base):
     weight = Column(DECIMAL)
 
 
+class UserHistoricalPortfolio(Base):
+    __tablename__ = "userHistoricalPortfolio"
+    id = Column(Integer, primary_key=True, index=True)
+    userId = Column(Integer, ForeignKey(UsersKey.id))
+    tokenAddress = Column(String, ForeignKey(SolanaTokens.address))
+    timestamp = Column(TIMESTAMP)
+    balance = Column(DECIMAL)
+
 def add_update_balances(rows: list):
     try:
         db = SessionLocal()
@@ -164,3 +172,20 @@ def update_solvest_tokens_price(symbols: list):
         db.commit()
     except Exception as e:
         print(e)
+
+def save_user_historical_portfolio(rows: list):
+    # try:
+        db = SessionLocal()
+        insertRows = [UserHistoricalPortfolio(userId=row["userId"], tokenAddress=row["tokenAddress"], timestamp=row["balanceTimestamp"], balance=row["balance"]) for row in rows]
+        db.add_all(insertRows)
+        db.commit()
+    # except Exception as e:
+    #     print(e)
+    #     return False
+
+# def get_last_updated_portfolio(userId):
+#     try:
+#         pass
+#     except Exception as e:
+#         print(e)
+#         return False
