@@ -22,7 +22,7 @@ def get_available_balances(key: str, db: Session):
         check = db.query(models.UsersKey).filter(models.UsersKey.publicKey == key).first()
         if not check:
             return {"success": False, "message": "Key does not exist in database, please add."}
-        res = db.query(models.Balances).filter(models.Balances.userId == check.id).filter(models.Balances.priceUsdt).all()
+        res = db.query(models.Balances).filter(models.Balances.userId == check.id, models.Balances.priceUsdt != None).all()
         return res
     except Exception as e:
         print(e)
