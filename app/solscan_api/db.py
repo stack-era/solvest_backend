@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.sql import case
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import Column, ForeignKey, Integer, String, TIMESTAMP, DECIMAL,Boolean, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, TIMESTAMP, DECIMAL,Boolean, UniqueConstraint, DATE
 from dotenv import load_dotenv
 import os
 from datetime import datetime
@@ -30,6 +30,7 @@ class Base:
     @declared_attr
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
+
 
 
 class UsersKey(Base):
@@ -102,6 +103,23 @@ class UserHistoricalPortfolio(Base):
     timestamp = Column(TIMESTAMP)
     balance = Column(DECIMAL)
 
+
+class TokensDailyData(Base):
+    __tablename__ = "tokensDailyData"
+    id = Column(Integer, primary_key=True, index=True)
+    tokenAddress = Column(String, ForeignKey(SolanaTokens.address))
+    date = Column(DATE)
+    closePrice = Column(DECIMAL)
+
+
+class SolvestTokensHistory(Base):
+    __tablename__ = 'solvestTokensHistory'
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String, ForeignKey(SolvestTokens.symbol))
+    timestamp = Column(TIMESTAMP)
+    price = Column(DECIMAL)
+
+
 def add_update_balances(rows: list):
     try:
         db = SessionLocal()
@@ -166,26 +184,52 @@ def update_solvest_tokens_price(symbols: list):
     try:
         db = SessionLocal()
         timenow = datetime.utcnow()
+        insertRow = list()
         for symbol in symbols:
+            insertRow.append(SolvestTokensHistory(symbol=symbol, timestamp=timenow, price=symbols[symbol]))
             updated_data = {'latestPrice': symbols[symbol], 'lastupdateTimestamp': timenow}
             db.query(SolvestTokens).filter(SolvestTokens.symbol == symbol).update(updated_data, synchronize_session=False)
+        db.add_all(insertRow)
         db.commit()
     except Exception as e:
         print(e)
 
 def save_user_historical_portfolio(rows: list):
-    # try:
+    try:
         db = SessionLocal()
         insertRows = [UserHistoricalPortfolio(userId=row["userId"], tokenAddress=row["tokenAddress"], timestamp=row["balanceTimestamp"], balance=row["balance"]) for row in rows]
         db.add_all(insertRows)
         db.commit()
-    # except Exception as e:
-    #     print(e)
-    #     return False
+    except Exception as e:
+        print(e)
+        return False
 
-# def get_last_updated_portfolio(userId):
-#     try:
-#         pass
-#     except Exception as e:
-#         print(e)
-#         return False
+def get_last_portfolio_update(userId):
+    try:
+        db = SessionLocal()
+        res = db.query(UserHistoricalPortfolio).with_entities(func.max(UserHistoricalPortfolio.timestamp).label('timestamp')).filter(UserHistoricalPortfolio.userId == userId).first()
+        if res:
+            return int(res.timestamp.timestamp())
+        else:
+            return None
+    except Exception as e:
+        print(e)
+        return False
+
+def get_tokens_for_candle_prices():
+    try:
+        db = SessionLocal()
+        res = db.query(SolanaTokens).with_entities(SolanaTokens.symbol, SolanaTokens.address).filter(SolanaTokens.priceAvailable).all()
+        return res
+    except Exception as e:
+        print(e)
+        return False
+
+def add_token_daily_data(rows):
+    try:
+        db = SessionLocal()
+        insertRows = [TokensDailyData(tokenAddress=row['address'], date=row['date'], closePrice=row['closePrice']) for row in rows]
+        db.add_all(insertRows)
+        db.commit()
+    except Exception as e:
+        print(e)

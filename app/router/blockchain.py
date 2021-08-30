@@ -3,6 +3,7 @@ from database import *
 from app.solscan_api.solscan_api import Solscan
 from .. import models, schemas
 from datetime import datetime
+from sqlalchemy import DATE, cast
 
 router = APIRouter()
 
@@ -93,6 +94,30 @@ def stop_user_stream(streamId: int, db: Session):
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occured while updating stream."}
+
+def get_user_historical_portfolio(publicKey: str, db: Session):
+    try:
+        userId = get_user_id(publicKey, db)
+        if userId is None:
+            return {"success": False, "message": "User Key not found."}
+        elif userId == False:
+            return {"success": False, "message": "Error occured while creating stream."}
+        res = db.query(models.UserHistoricalPortfolio).with_entities((cast(models.UserHistoricalPortfolio.timestamp, DATE)).label('date'), models.UserHistoricalPortfolio.balance, models.SolanaTokens.symbol, models.TokensDailyData.closePrice)\
+                .join(models.SolanaTokens, models.SolanaTokens.address == models.UserHistoricalPortfolio.tokenAddress)\
+                .join(models.TokensDailyData, (models.TokensDailyData.tokenAddress == models.UserHistoricalPortfolio.tokenAddress) & (cast(models.UserHistoricalPortfolio.timestamp, DATE) == models.TokensDailyData.date))\
+                .order_by(models.UserHistoricalPortfolio.timestamp.desc()).filter(models.UserHistoricalPortfolio.userId == userId).all()
+        portfolio_dic = dict()
+        for row in res:
+            if row['date'] not in portfolio_dic:
+                portfolio_dic[row['date']] = float(row.balance * row.closePrice)
+            else:
+                portfolio_dic[row['date']] += float(row.balance * row.closePrice)
+        response = {"success": True, "data": portfolio_dic}
+        return response
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while getting historical portfolio."}
+
 ########################################################################################################
 ########################################################################################################
 
@@ -164,4 +189,9 @@ async def get_streams(publicKey: str, db: Session = Depends(get_db)):
 @router.get("/stop_stream")
 async def stop_stream(streamId: int, db: Session = Depends(get_db)):
     res = stop_user_stream(streamId, db)
+    return res
+
+@router.get("/user_historical_portfolio")
+async def user_historical_portfolio(publicKey: str, db: Session = Depends(get_db)):
+    res = get_user_historical_portfolio(publicKey, db)
     return res

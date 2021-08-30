@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, UniqueConstraint, Integer, String, TIMESTAMP, DECIMAL
+from sqlalchemy import Boolean, Column, ForeignKey, UniqueConstraint, Integer, String, TIMESTAMP, DECIMAL, DATE
 
 from database import Base
 
@@ -83,3 +83,20 @@ class UserHistoricalPortfolio(Base):
     tokenAddress = Column(String, ForeignKey(SolanaTokens.address))
     timestamp = Column(TIMESTAMP)
     balance = Column(DECIMAL)
+
+
+class TokensDailyData(Base):
+    __tablename__ = "tokensDailyData"
+    id = Column(Integer, primary_key=True, index=True)
+    tokenAddress = Column(String, ForeignKey(SolanaTokens.address))
+    date = Column(DATE)
+    closePrice = Column(DECIMAL)
+
+
+class SolvestTokensHistory(Base):
+    __tablename__ = 'solvestTokensHistory'
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String, ForeignKey(SolvestTokens.symbol))
+    timestamp = Column(TIMESTAMP)
+    price = Column(DECIMAL)
+

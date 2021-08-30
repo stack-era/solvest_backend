@@ -1,6 +1,6 @@
 import requests, os, time
 from dotenv import load_dotenv
-from .db import add_update_balances, add_update_tokens, save_user_historical_portfolio
+from .db import add_update_balances, add_update_tokens, save_user_historical_portfolio, get_last_portfolio_update
 from datetime import datetime, timedelta
 
 # ENV Variables
@@ -149,9 +149,11 @@ class Solscan():
             return {"success": False, "message": "Error occured while saving tokens"}
 
     def save_historical_portfolio(self, userId):
+        last_epoch = get_last_portfolio_update(userId)
         # Get transactions, loop through them to find token chaneges and save to db
-        one_year_ago_epoch = int((datetime.now() - timedelta(days=365)).timestamp())
-        print(one_year_ago_epoch)
+        if not last_epoch:
+            last_epoch = int((datetime.now() - timedelta(days=20)).timestamp())
+        print(last_epoch)
         transactions = True
         transactions_url = "{}/account/{}/transactions".format(SOLBEACH_URL, self.publicKey)
         headers = {"Authorization": "Bearer {}".format(SOLBEACH_TOKEN)}
@@ -169,7 +171,7 @@ class Solscan():
                     transactions = False
                     break
                 for tx in data:
-                    if tx['blocktime']['absolute'] > one_year_ago_epoch:
+                    if tx['blocktime']['absolute'] > last_epoch:
                         if SOL_ADDRESS not in tmp_balances or not tmp_balances[SOL_ADDRESS] != tx['meta']['postBalances'][0]:
                             db_data.append({
                                 "userId": userId,
@@ -194,7 +196,3 @@ class Solscan():
                         break
                     offset += 200
             save_user_historical_portfolio(db_data)
-
-if __name__ == '__main__':
-    obj = Solscan("Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT")
-    obj.save_historical_portfolio(1)
