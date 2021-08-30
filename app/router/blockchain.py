@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, BackgroundTasks
 from database import *
 from app.solscan_api.solscan_api import Solscan
 from .. import models, schemas
-from datetime import datetime
-from sqlalchemy import DATE, cast
+from datetime import datetime, date, timedelta
+from sqlalchemy import DATE, cast, func
 
 router = APIRouter()
 
@@ -22,7 +22,11 @@ def get_available_balances(key: str, db: Session):
         check = db.query(models.UsersKey).filter(models.UsersKey.publicKey == key).first()
         if not check:
             return {"success": False, "message": "Key does not exist in database, please add."}
-        res = db.query(models.Balances).filter(models.Balances.userId == check.id, models.Balances.priceUsdt != None).all()
+        yesterday_date = date.today() - timedelta(days=1)
+        print(yesterday_date)
+        res = db.query(models.Balances).with_entities(models.Balances.priceUsdt, models.Balances.tokenName, models.Balances.tokenSymbol, models.Balances.tokenIcon, models.Balances.tokenAmountUI, ((models.Balances.priceUsdt / models.TokensDailyData.closePrice) - 1).label('todayChange'))\
+                .join(models.SolanaTokens, models.SolanaTokens.symbol == models.Balances.tokenSymbol).join(models.TokensDailyData, models.SolanaTokens.address == models.TokensDailyData.tokenAddress)\
+                .filter(models.Balances.userId == check.id, models.Balances.priceUsdt != None, models.TokensDailyData.date == yesterday_date).all()
         return res
     except Exception as e:
         print(e)
