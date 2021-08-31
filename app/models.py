@@ -100,3 +100,13 @@ class SolvestTokensHistory(Base):
     timestamp = Column(TIMESTAMP)
     price = Column(DECIMAL)
 
+
+class UserSolvestTransactions(Base):
+    __tablename__ = 'userSolvestTransactions'
+    id = Column(Integer, primary_key=True, index=True)
+    userId = Column(Integer, ForeignKey(UsersKey.id))
+    tokenId = Column(Integer, ForeignKey(SolvestTokens.id))
+    transactionId = Column(String)
+    side = Column(String)
+    quantity = Column(DECIMAL)
+    timestamp = Column(TIMESTAMP)

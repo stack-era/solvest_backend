@@ -122,6 +122,35 @@ def get_user_historical_portfolio(publicKey: str, db: Session):
         print(e)
         return {"success": False, "message": "Error occured while getting historical portfolio."}
 
+def add_user_transaction(transactionData: schemas.SaveTransaction, db: Session):
+    try:
+        userId = get_user_id(transactionData.publicKey, db)
+        if userId is None:
+            return {"success": False, "message": "User Key not found."}
+        elif userId == False:
+            return {"success": False, "message": "Error occured while saving transaction."}
+        insertTransaction = models.UserSolvestTransactions(userId=userId, tokenId=transactionData.tokenId, transactionId=transactionData.transactionId, side=transactionData.side, quantity=transactionData.quantity, timestamp=datetime.utcnow())
+        db.add(insertTransaction)
+        db.commit()
+        return {"success": True, "message": "Transaction added successfully."}
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while saving transaction."}
+
+def get_user_transactions(publicKey: str, db: Session):
+    try:
+        userId = get_user_id(publicKey, db)
+        if userId is None:
+            return {"success": False, "message": "User Key not found."}
+        elif userId == False:
+            return {"success": False, "message": "Error occured while fetching transaction."}
+        res = db.query(models.UserSolvestTransactions).with_entities(models.UserSolvestTransactions.transactionId, models.UserSolvestTransactions.side, models.UserSolvestTransactions.quantity, models.UserSolvestTransactions.timestamp, models.SolvestTokens.name, models.SolvestTokens.symbol)\
+                .join(models.SolvestTokens, models.SolvestTokens.id == models.UserSolvestTransactions.tokenId).filter(models.UserSolvestTransactions.userId == userId).order_by(models.UserSolvestTransactions.timestamp.desc()).all()
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while fetching transactions."}
+
 ########################################################################################################
 ########################################################################################################
 
@@ -198,4 +227,15 @@ async def stop_stream(streamId: int, db: Session = Depends(get_db)):
 @router.get("/user_historical_portfolio")
 async def user_historical_portfolio(publicKey: str, db: Session = Depends(get_db)):
     res = get_user_historical_portfolio(publicKey, db)
+    return res
+
+@router.post("/save_user_transaction")
+async def save_user_transaction(transactionData: schemas.SaveTransaction, db: Session = Depends(get_db)):
+    print(transactionData)
+    res = add_user_transaction(transactionData, db)
+    return res
+
+@router.get("/get_user_solvest_transactions")
+async def fetch_user_transactions(publicKey: str, db: Session = Depends(get_db)):
+    res = get_user_transactions(publicKey, db)
     return res

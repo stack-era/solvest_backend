@@ -7,3 +7,14 @@ class StreamCreate(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class SaveTransaction(BaseModel):
+    publicKey: str
+    tokenId: int
+    transactionId: str
+    side: str
+    quantity: float
+
+    class Config:
+        orm_mode = True
