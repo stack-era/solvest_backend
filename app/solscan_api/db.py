@@ -129,6 +129,7 @@ def add_update_balances(rows: list):
         on_conflict = stmt.on_conflict_do_update(constraint='_token_balance_uq', set_={'userId': stmt.excluded.userId, 'tokenAccount': stmt.excluded.tokenAccount, 'tokenName': stmt.excluded.tokenName, 'tokenSymbol': stmt.excluded.tokenSymbol, 'tokenIcon': stmt.excluded.tokenIcon, 'priceUsdt': stmt.excluded.priceUsdt, 'tokenAmountUI': stmt.excluded.tokenAmountUI})
         db.execute(on_conflict)
         db.commit()
+        db.close()
         return True
     except Exception as e:
         print(e)
@@ -143,6 +144,7 @@ def add_update_tokens(rows: list):
         on_conflict = stmt.on_conflict_do_update(constraint='_token_name_uq', set_={'chainId': stmt.excluded.chainId, 'decimals': stmt.excluded.decimals, 'logoURI': stmt.excluded.logoURI, 'name': stmt.excluded.name, 'symbol': stmt.excluded.symbol, 'priceAvailable': stmt.excluded.priceAvailable})
         db.execute(on_conflict)
         db.commit()
+        db.close()
     except Exception as e:
         print(e)
         return False
@@ -208,6 +210,7 @@ def save_user_historical_portfolio(rows: list):
         insertRows = [UserHistoricalPortfolio(userId=row["userId"], tokenAddress=row["tokenAddress"], timestamp=row["balanceTimestamp"], balance=row["balance"]) for row in rows]
         db.add_all(insertRows)
         db.commit()
+        db.close()
         return True
     except Exception as e:
         print(e)
@@ -217,6 +220,7 @@ def get_last_portfolio_update(userId):
     try:
         db = SessionLocal()
         res = db.query(UserHistoricalPortfolio).with_entities(func.max(UserHistoricalPortfolio.timestamp).label('timestamp')).filter(UserHistoricalPortfolio.userId == userId).first()
+        db.close()
         if res:
             return int(res.timestamp.timestamp())
         else:
@@ -229,6 +233,7 @@ def get_tokens_for_candle_prices():
     try:
         db = SessionLocal()
         res = db.query(SolanaTokens).with_entities(SolanaTokens.symbol, SolanaTokens.address).filter(SolanaTokens.priceAvailable).all()
+        db.close()
         return res
     except Exception as e:
         print(e)
@@ -240,6 +245,7 @@ def add_token_daily_data(rows):
         insertRows = [TokensDailyData(tokenAddress=row['address'], date=row['date'], closePrice=row['closePrice']) for row in rows]
         db.add_all(insertRows)
         db.commit()
+        db.close()
         return True
     except Exception as e:
         print(e)
