@@ -25,7 +25,7 @@ def main():
                 "baseId":  data['data'][0]['baseId'],
                 "quoteId": data['data'][0]['quoteId'],
                 "interval": "d1",
-                "start": int(1598745600) * 1000,
+                "start": int(start) * 1000,
                 "end": int(end) * 1000
             }
             print(params)
@@ -41,6 +41,8 @@ def main():
                         "closePrice": float(candle['close'])
                     })
                 add_token_daily_data(db_data)
+    return True
 
 if __name__ == '__main__':
     main()
+    exit()

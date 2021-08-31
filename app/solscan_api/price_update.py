@@ -15,7 +15,7 @@ def save_sol_tokens_prices():
         db_data = list()
         updated = list()
         while len(all_tokens) > len(updated):
-            time.sleep(5)
+            time.sleep(10)
             params = {"offset": offset, "limit": 2000}
             res = requests.get(COINCAP_URL, params=params)
             if res.status_code == 200 and res.json()['data']:
@@ -46,8 +46,10 @@ def save_sol_tokens_prices():
         #             })
         if db_data:
             save_tokens_price(db_data)
+        return True
     except Exception as e:
         print(e)
+        return False
 
 
 def save_solvest_token_price():
@@ -61,10 +63,13 @@ def save_solvest_token_price():
             updated_price_dic[token.solvest_symbol] += token.weight * token.price
         print(updated_price_dic)
         update_solvest_tokens_price(updated_price_dic)
+        return True
     except Exception as e:
         print(e)
+        return False
 
 
 if __name__ == '__main__':
     save_sol_tokens_prices()
     save_solvest_token_price()
+    exit()

@@ -177,8 +177,10 @@ def save_tokens_price(rows: list):
         insertRows = [TokensPriceHistory(address=row['address'], name=row['name'], symbol=row['symbol'], price=row['price'], timestamp=time) for row in rows]
         db.add_all(insertRows)
         db.commit()
+        return True
     except Exception as e:
         print(e)
+        return False
 
 def update_solvest_tokens_price(symbols: list):
     try:
@@ -191,8 +193,10 @@ def update_solvest_tokens_price(symbols: list):
             db.query(SolvestTokens).filter(SolvestTokens.symbol == symbol).update(updated_data, synchronize_session=False)
         db.add_all(insertRow)
         db.commit()
+        return True
     except Exception as e:
         print(e)
+        return False
 
 def save_user_historical_portfolio(rows: list):
     try:
@@ -200,6 +204,7 @@ def save_user_historical_portfolio(rows: list):
         insertRows = [UserHistoricalPortfolio(userId=row["userId"], tokenAddress=row["tokenAddress"], timestamp=row["balanceTimestamp"], balance=row["balance"]) for row in rows]
         db.add_all(insertRows)
         db.commit()
+        return True
     except Exception as e:
         print(e)
         return False
@@ -231,5 +236,7 @@ def add_token_daily_data(rows):
         insertRows = [TokensDailyData(tokenAddress=row['address'], date=row['date'], closePrice=row['closePrice']) for row in rows]
         db.add_all(insertRows)
         db.commit()
+        return True
     except Exception as e:
         print(e)
+        return False
