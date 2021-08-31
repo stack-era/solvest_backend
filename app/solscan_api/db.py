@@ -155,6 +155,7 @@ def get_solvest_tokens():
         res = db.query(SolvestTokens).with_entities(SolvestTokens.symbol.label('solvest_symbol'), UnderlyingTokens.symbol, UnderlyingTokens.weight, TokensPriceHistory.price)\
                         .join(UnderlyingTokens, UnderlyingTokens.parentToken == SolvestTokens.id).join(TokensPriceHistory, TokensPriceHistory.address == UnderlyingTokens.address)\
                         .filter(TokensPriceHistory.timestamp == t).all()
+        db.close()
         return res
     except Exception as e:
         print(e)
@@ -165,6 +166,7 @@ def get_underlying_tokens():
         db = SessionLocal()
         res = db.query(SolanaTokens).with_entities(SolanaTokens.symbol, SolanaTokens.address, SolanaTokens.name).join(UnderlyingTokens, UnderlyingTokens.address == SolanaTokens.address)\
             .group_by(UnderlyingTokens.symbol, SolanaTokens.symbol, SolanaTokens.address, SolanaTokens.name).all()
+        db.close()
         return res
     except Exception as e:
         print(e)
@@ -177,6 +179,7 @@ def save_tokens_price(rows: list):
         insertRows = [TokensPriceHistory(address=row['address'], name=row['name'], symbol=row['symbol'], price=row['price'], timestamp=time) for row in rows]
         db.add_all(insertRows)
         db.commit()
+        db.close()
         return True
     except Exception as e:
         print(e)
@@ -193,6 +196,7 @@ def update_solvest_tokens_price(symbols: list):
             db.query(SolvestTokens).filter(SolvestTokens.symbol == symbol).update(updated_data, synchronize_session=False)
         db.add_all(insertRow)
         db.commit()
+        db.close()
         return True
     except Exception as e:
         print(e)
