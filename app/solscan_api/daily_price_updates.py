@@ -10,7 +10,7 @@ COINCAP_PRICE_URL=os.environ.get('COINCAP_PRICE_URL')
 COINCAP_CANDLE_URL=os.environ.get('COINCAP_CANDLE_URL')
 
 def main():
-    start = int((datetime.now() - timedelta(days=1)).timestamp())
+    start = int((datetime.now() - timedelta(days=2)).timestamp())
     end = datetime.now().timestamp()
     tokens = get_tokens_for_candle_prices()
     for token in tokens:
@@ -18,7 +18,6 @@ def main():
         price_res = requests.get(COINCAP_PRICE_URL, params=params)
         if price_res.status_code == 200:
             # print(price_res.json())
-            print(token)
             data = price_res.json()
             params = {
                 "exchange": data['data'][0]['exchangeId'],
@@ -28,9 +27,7 @@ def main():
                 "start": int(start) * 1000,
                 "end": int(end) * 1000
             }
-            print(params)
             res = requests.get(COINCAP_CANDLE_URL, params=params)
-            print(res.json())
             if res.status_code == 200:
                 db_data = list()
                 data = res.json()
@@ -40,6 +37,7 @@ def main():
                         "date": (datetime.utcfromtimestamp(int(candle['period']/1000))).date(),
                         "closePrice": float(candle['close'])
                     })
+                print(db_data)
                 add_token_daily_data(db_data)
     return True
 
