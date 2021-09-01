@@ -311,3 +311,12 @@ def update_index_tokens_price(symbols):
     except Exception as e:
         print(e)
         return False
+
+def get_all_user_id():
+    try:
+        db = SessionLocal()
+        res = db.query(UsersKey).all()
+        return res
+    except Exception as e:
+        print(e)
+        return False
