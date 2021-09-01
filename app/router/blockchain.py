@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
+from sqlalchemy.sql.functions import mode
 from database import *
 from app.solscan_api.solscan_api import Solscan
 from .. import models, schemas
@@ -86,7 +87,13 @@ def save_user_stream(streamData: schemas.StreamCreate, db: Session):
 
 def fetch_key_streams(key: str, db: Session):
     try:
-        res = db.query(models.UserStreams).join(models.UsersKey, models.UsersKey.id == models.UserStreams.id).filter(models.UsersKey.publicKey == key).all()
+        user_id = get_user_id(key, db)
+        if user_id is None:
+            return {"success": False, "message": "User Key not found."}
+        elif user_id == False:
+            return {"success": False, "message": "Error occured while creating stream."}
+        res = db.query(models.UserStreams).with_entities(models.UserStreams.id, models.UserStreams.startTimestamp, models.UserStreams.stopTimestamp, models.UserStreams.interval, models.UserStreams.active, models.SolvestTokens.name, models.SolvestTokens.symbol)\
+            .join(models.SolvestTokens, models.SolvestTokens.id == models.UserStreams.solvestToken).filter(models.UserStreams.userId == user_id).all()
         return res
     except Exception as e:
         print(e)
