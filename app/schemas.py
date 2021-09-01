@@ -4,6 +4,7 @@ class StreamCreate(BaseModel):
     publicAddress: str
     solvesToken: int
     interval: str
+    quantity: float
 
     class Config:
         orm_mode = True

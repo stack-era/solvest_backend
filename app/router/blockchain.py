@@ -251,3 +251,13 @@ async def save_user_transaction(transactionData: schemas.SaveTransaction, db: Se
 async def fetch_user_transactions(publicKey: str, db: Session = Depends(get_db)):
     res = get_user_transactions(publicKey, db)
     return res
+
+@router.get("/get_user_transactions")
+async def get_user_transactions(publicKey: str, limit: int = 100, offset: int = 0):
+    try:
+        obj = Solscan(publicKey)
+        res = obj.get_user_transactions(limit, offset)
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occurred while fetching transactions."}
