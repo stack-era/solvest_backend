@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, func, inspect
 from sqlalchemy.sql import case
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
 from sqlalchemy.orm import sessionmaker
@@ -118,6 +118,34 @@ class SolvestTokensHistory(Base):
     __tablename__ = 'solvestTokensHistory'
     id = Column(Integer, primary_key=True, index=True)
     symbol = Column(String, ForeignKey(SolvestTokens.symbol))
+    timestamp = Column(TIMESTAMP)
+    price = Column(DECIMAL)
+
+
+class IndexTokens(Base):
+    __tablename__ = 'indexTokens'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+    symbol = Column(String, unique=True)
+    underlyingTokens = Column(Integer)
+    latestPrice = Column(DECIMAL)
+    lastupdateTimestamp = Column(TIMESTAMP)
+
+
+class IndexUnderlyingTokens(Base):
+    __tablename__ = 'indexUnderlyingTokens'
+    id = Column(Integer, primary_key=True, index=True)
+    address = Column(String, ForeignKey(SolanaTokens.address))
+    parentToken = Column(Integer, ForeignKey(IndexTokens.id))
+    symbol = Column(String)
+    name = Column(String)
+    weight = Column(DECIMAL)
+
+
+class IndexTokensHistory(Base):
+    __tablename__ = 'indexTokensHistory'
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String, ForeignKey(IndexTokens.symbol))
     timestamp = Column(TIMESTAMP)
     price = Column(DECIMAL)
 
@@ -246,6 +274,37 @@ def add_token_daily_data(rows):
         db = SessionLocal()
         insertRows = [TokensDailyData(tokenAddress=row['address'], date=row['date'], closePrice=row['closePrice']) for row in rows]
         db.add_all(insertRows)
+        db.commit()
+        db.close()
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def get_index_tokens():
+    try:
+        db = SessionLocal()
+        t = db.query(func.max(TokensPriceHistory.timestamp)).scalar_subquery()
+        print(t)
+        res = db.query(IndexTokens).with_entities(IndexTokens.symbol.label('solvest_symbol'), IndexUnderlyingTokens.symbol, IndexUnderlyingTokens.weight, TokensPriceHistory.price)\
+                        .join(IndexUnderlyingTokens, IndexUnderlyingTokens.parentToken == IndexTokens.id).join(TokensPriceHistory, TokensPriceHistory.address == IndexUnderlyingTokens.address)\
+                        .filter(TokensPriceHistory.timestamp == t).all()
+        db.close()
+        return res
+    except Exception as e:
+        print(e)
+        return False
+
+def update_index_tokens_price(symbols):
+    try:
+        db = SessionLocal()
+        timenow = datetime.utcnow()
+        insertRow = list()
+        for symbol in symbols:
+            insertRow.append(IndexTokensHistory(symbol=symbol, timestamp=timenow, price=symbols[symbol]))
+            updated_data = {'latestPrice': symbols[symbol], 'lastupdateTimestamp': timenow}
+            db.query(IndexTokens).filter(IndexTokens.symbol == symbol).update(updated_data, synchronize_session=False)
+        db.add_all(insertRow)
         db.commit()
         db.close()
         return True

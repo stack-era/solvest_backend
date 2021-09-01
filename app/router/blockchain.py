@@ -75,6 +75,24 @@ def fetch_solvest_tokens(db):
         print(e)
         return {"success": False, "message": "Error occured while fetching tokens."}
 
+def fetch_index_tokens(db):
+    try:
+        t = db.query(func.max(models.TokensPriceHistory.timestamp)).scalar_subquery()
+        res = db.query(models.IndexTokens).with_entities(models.IndexTokens.id, models.IndexTokens.symbol.label("solvest_tkn_symbol"), models.IndexTokens.name.label("solvest_tkn_name"), models.IndexTokens.latestPrice.label("solvest_tkn_price"), models.IndexUnderlyingTokens.symbol.label("under_tkn_symbol"), models.IndexUnderlyingTokens.name.label("under_tkn_name"), models.IndexUnderlyingTokens.weight.label("under_tkn_weight"), models.TokensPriceHistory.price.label("under_tkn_price"))\
+            .join(models.IndexUnderlyingTokens, models.IndexUnderlyingTokens.parentToken == models.IndexTokens.id)\
+            .join(models.TokensPriceHistory, models.TokensPriceHistory.address == models.IndexUnderlyingTokens.address)\
+            .filter(models.TokensPriceHistory.timestamp == t).all()
+        response = dict()
+        for row in res:
+            if row.solvest_tkn_symbol not in response:
+                response[row.solvest_tkn_symbol] = {"id": row.id, "price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}}]}
+            else:
+                response[row.solvest_tkn_symbol]["underlyingTokens"].append({row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}})
+        return response
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while fetching tokens."}
+
 def save_user_stream(streamData: schemas.StreamCreate, db: Session):
     try:
         user_id = get_user_id(streamData.publicAddress, db)
@@ -266,3 +284,8 @@ async def get_user_transaction(publicKey: str, limit: int = 100, offset: int = 0
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occurred while fetching transactions."}
+
+@router.get("/get_index_tokens")
+async def get_index_tokens(db: Session = Depends(get_db)):
+    res = fetch_index_tokens(db)
+    return res

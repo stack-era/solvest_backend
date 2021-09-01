@@ -1,4 +1,4 @@
-from db import get_underlying_tokens, save_tokens_price, get_solvest_tokens, update_solvest_tokens_price
+from db import get_underlying_tokens, save_tokens_price, get_solvest_tokens, update_solvest_tokens_price, get_index_tokens, update_index_tokens_price
 import requests, os, time
 from dotenv import load_dotenv
 
@@ -68,8 +68,24 @@ def save_solvest_token_price():
         print(e)
         return False
 
+def save_index_tokens_price():
+    try:
+        tokens = get_index_tokens()
+        print(tokens)
+        updated_price_dic = dict()
+        for token in tokens:
+            if token.solvest_symbol not in updated_price_dic:
+                updated_price_dic[token.solvest_symbol] = 0
+            updated_price_dic[token.solvest_symbol] += token.weight * token.price
+        print(updated_price_dic)
+        update_index_tokens_price(updated_price_dic)
+        return True
+    except Exception as e:
+        print(e)
+        return False
 
 if __name__ == '__main__':
     save_sol_tokens_prices()
     save_solvest_token_price()
+    save_index_tokens_price()
     exit()

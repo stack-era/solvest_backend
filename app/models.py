@@ -113,28 +113,29 @@ class UserSolvestTransactions(Base):
     timestamp = Column(TIMESTAMP)
 
 
-# class IndexTokens(Base):
-#     __tablename__ = 'indexTokens'
-#     id = Column(Integer, primary_key=True, index=True)
-#     name = 
+class IndexTokens(Base):
+    __tablename__ = 'indexTokens'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+    symbol = Column(String, unique=True)
+    underlyingTokens = Column(Integer)
+    latestPrice = Column(DECIMAL)
+    lastupdateTimestamp = Column(TIMESTAMP)
 
 
+class IndexUnderlyingTokens(Base):
+    __tablename__ = 'indexUnderlyingTokens'
+    id = Column(Integer, primary_key=True, index=True)
+    address = Column(String, ForeignKey(SolanaTokens.address))
+    parentToken = Column(Integer, ForeignKey(IndexTokens.id))
+    symbol = Column(String)
+    name = Column(String)
+    weight = Column(DECIMAL)
 
-# class SolvestTokens(Base):
-#     __tablename__ = "solvestTokens"
-#     id = Column(Integer, primary_key=True, index=True)
-#     name = Column(String, unique=True)
-#     symbol = Column(String, unique=True)
-#     underlyingTokens = Column(Integer)
-#     latestPrice = Column(DECIMAL)
-#     lastupdateTimestamp = Column(TIMESTAMP)
 
-
-# class UnderlyingTokens(Base):
-#     __tablename__ = "underlyingTokens"
-#     id = Column(Integer, primary_key=True, index=True)
-#     address = Column(String, ForeignKey(SolanaTokens.address))
-#     parentToken = Column(Integer, ForeignKey(SolvestTokens.id))
-#     symbol = Column(String)
-#     name = Column(String)
-#     weight = Column(DECIMAL)
+class IndexTokensHistory(Base):
+    __tablename__ = 'indexTokensHistory'
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String, ForeignKey(IndexTokens.symbol))
+    timestamp = Column(TIMESTAMP)
+    price = Column(DECIMAL)
