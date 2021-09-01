@@ -24,10 +24,15 @@ def get_available_balances(key: str, db: Session):
         if not check:
             return {"success": False, "message": "Key does not exist in database, please add."}
         yesterday_date = date.today() - timedelta(days=1)
+        week_date = date.today() - timedelta(days=7)
         print(yesterday_date)
         res = db.query(models.Balances).with_entities(models.Balances.priceUsdt, models.Balances.tokenName, models.Balances.tokenSymbol, models.Balances.tokenIcon, models.Balances.tokenAmountUI, ((models.Balances.priceUsdt / models.TokensDailyData.closePrice) - 1).label('todayChange'))\
                 .join(models.SolanaTokens, models.SolanaTokens.symbol == models.Balances.tokenSymbol).join(models.TokensDailyData, models.SolanaTokens.address == models.TokensDailyData.tokenAddress)\
                 .filter(models.Balances.userId == check.id, models.Balances.priceUsdt != None, models.TokensDailyData.date == yesterday_date).all()
+        weekly = db.query(models.Balances).with_entities(func.sum((models.Balances.priceUsdt / models.TokensDailyData.closePrice) - 1).label('weekChange'))\
+                .join(models.SolanaTokens, models.SolanaTokens.symbol == models.Balances.tokenSymbol).join(models.TokensDailyData, models.SolanaTokens.address == models.TokensDailyData.tokenAddress)\
+                .filter(models.Balances.userId == check.id, models.Balances.priceUsdt != None, models.TokensDailyData.date == week_date).all()
+        res = {"data": [row._asdict() for row in res], "weekly": weekly}
         return res
     except Exception as e:
         print(e)
@@ -253,7 +258,7 @@ async def fetch_user_transactions(publicKey: str, db: Session = Depends(get_db))
     return res
 
 @router.get("/get_user_transactions")
-async def get_user_transactions(publicKey: str, limit: int = 100, offset: int = 0):
+async def get_user_transaction(publicKey: str, limit: int = 100, offset: int = 0):
     try:
         obj = Solscan(publicKey)
         res = obj.get_user_transactions(limit, offset)

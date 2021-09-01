@@ -31,7 +31,9 @@ class Base:
     def __tablename__(cls) -> str:
         return cls.__name__.lower()
 
-
+    def _asdict(self):
+        return {c.key: getattr(self, c.key)
+                    for c in inspect(self).mapper.column_attrs}
 
 class UsersKey(Base):
     __tablename__ = "usersKey"

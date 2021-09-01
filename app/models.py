@@ -111,3 +111,30 @@ class UserSolvestTransactions(Base):
     side = Column(String)
     quantity = Column(DECIMAL)
     timestamp = Column(TIMESTAMP)
+
+
+# class IndexTokens(Base):
+#     __tablename__ = 'indexTokens'
+#     id = Column(Integer, primary_key=True, index=True)
+#     name = 
+
+
+
+# class SolvestTokens(Base):
+#     __tablename__ = "solvestTokens"
+#     id = Column(Integer, primary_key=True, index=True)
+#     name = Column(String, unique=True)
+#     symbol = Column(String, unique=True)
+#     underlyingTokens = Column(Integer)
+#     latestPrice = Column(DECIMAL)
+#     lastupdateTimestamp = Column(TIMESTAMP)
+
+
+# class UnderlyingTokens(Base):
+#     __tablename__ = "underlyingTokens"
+#     id = Column(Integer, primary_key=True, index=True)
+#     address = Column(String, ForeignKey(SolanaTokens.address))
+#     parentToken = Column(Integer, ForeignKey(SolvestTokens.id))
+#     symbol = Column(String)
+#     name = Column(String)
+#     weight = Column(DECIMAL)
