@@ -73,13 +73,14 @@ def save_historical_portfolio(userId, publicKey):
         transactions_url = "{}/account/{}/transactions".format(SOLBEACH_URL, publicKey)
         headers = {"Authorization": "Bearer {}".format(SOLBEACH_TOKEN)}
         offset = 0
-        limit = 200
+        limit = 1000
         tmp_balances = dict()
         while transactions:
             db_data = list()
             # transactions var will be False if no more transactions available or if one year transactions are parsed
             params = {"limit": limit, "offset": offset}
             resp = requests.get(transactions_url, params=params, headers=headers)
+            print(resp)
             if resp.status_code == 200:
                 data = resp.json()
                 if not data:
@@ -109,7 +110,7 @@ def save_historical_portfolio(userId, publicKey):
                     else:
                         transactions = False
                         break
-                    offset += 200
+                    offset += 1000
             save_user_historical_portfolio(db_data)
     except Exception as e:
         print(e)
