@@ -74,6 +74,7 @@ class UserStreams(Base):
     stopTimestamp = Column(TIMESTAMP)
     interval = Column(String)
     active = Column(Boolean)
+    quantity = Column(DECIMAL)
 
 
 class UserHistoricalPortfolio(Base):

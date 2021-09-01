@@ -77,7 +77,7 @@ def save_user_stream(streamData: schemas.StreamCreate, db: Session):
             return {"success": False, "message": "User Key not found."}
         elif user_id == False:
             return {"success": False, "message": "Error occured while creating stream."}
-        insertStream = models.UserStreams(userId=user_id, solvestToken=streamData.solvesToken, startTimestamp=datetime.utcnow(), interval=streamData.interval, active=True)
+        insertStream = models.UserStreams(userId=user_id, solvestToken=streamData.solvesToken, startTimestamp=datetime.utcnow(), interval=streamData.interval, active=True, quantity=streamData.quantity)
         db.add(insertStream)
         db.commit()
         return {"success": True, "message": "Added stream successfully"}
@@ -92,8 +92,10 @@ def fetch_key_streams(key: str, db: Session):
             return {"success": False, "message": "User Key not found."}
         elif user_id == False:
             return {"success": False, "message": "Error occured while creating stream."}
-        res = db.query(models.UserStreams).with_entities(models.UserStreams.id, models.UserStreams.startTimestamp, models.UserStreams.stopTimestamp, models.UserStreams.interval, models.UserStreams.active, models.SolvestTokens.name, models.SolvestTokens.symbol)\
-            .join(models.SolvestTokens, models.SolvestTokens.id == models.UserStreams.solvestToken).filter(models.UserStreams.userId == user_id).all()
+        t = db.query(func.max(models.SolvestTokensHistory.timestamp)).scalar_subquery()
+        res = db.query(models.UserStreams).with_entities(models.UserStreams.id, models.UserStreams.startTimestamp, models.UserStreams.stopTimestamp, models.UserStreams.interval, models.UserStreams.active, models.UserStreams.quantity, models.SolvestTokens.name, models.SolvestTokens.symbol, models.SolvestTokensHistory.price)\
+            .join(models.SolvestTokens, models.SolvestTokens.id == models.UserStreams.solvestToken)\
+            .join(models.SolvestTokensHistory, models.SolvestTokensHistory.symbol == models.SolvestTokens.symbol).filter(models.UserStreams.userId == user_id, models.SolvestTokensHistory.timestamp == t).all()
         return res
     except Exception as e:
         print(e)
@@ -210,10 +212,10 @@ async def get_solvest_tokens(db: Session = Depends(get_db)):
     return res
 
 @router.get("/get_token_transactions")
-async def get_token_transactions(address: str, before: str = None):
+async def get_token_transactions(address: str, limit: int = 100, offset: int = 0):
     try:
         obj = Solscan()
-        res = obj.get_token_transactions(address, before)
+        res = obj.get_token_transactions(address, limit, offset)
         return res
     except Exception as e:
         print(e)

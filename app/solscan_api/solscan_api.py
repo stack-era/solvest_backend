@@ -133,20 +133,19 @@ class Solscan():
             print(e)
             return {"success": False, "message": "Error occured while saving tokens"}
 
-    def get_token_transactions(self, token_address, before):
+    def get_token_transactions(self, token_address, limit, offset):
         try:
-            token_trasactions_url = "{}/account/transaction".format(BASE_URL)
-            params = {"address": token_address}
-            if before:
-                params["before"] = before
-            res = requests.get(token_trasactions_url, params=params)
+            url = "{}/token/{}/transfers".format(SOLBEACH_URL, token_address)
+            headers = {"Authorization": "Bearer {}".format(SOLBEACH_TOKEN)}
+            params = {'limit': limit, 'offset': offset}
+            res = requests.get(url, params=params, headers=headers)
             if res.status_code == 200:
                 return res.json()
             else:
-                return {"success": False, "message": "Error occured while saving tokens"}
+                return {"success": False, "message": "Error occured while getting transactions"}
         except Exception as e:
             print(e)
-            return {"success": False, "message": "Error occured while saving tokens"}
+            return {"success": False, "message": "Error occured while getting transactions"}
 
     def save_historical_portfolio(self, userId):
         last_epoch = get_last_portfolio_update(userId)
