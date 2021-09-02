@@ -4,7 +4,8 @@ from database import *
 from app.solscan_api.solscan_api import Solscan
 from .. import models, schemas
 from datetime import datetime, date, timedelta
-from sqlalchemy import DATE, cast, func
+from sqlalchemy import DATE, cast, func, distinct
+from sqlalchemy.dialects import postgresql
 
 router = APIRouter()
 
@@ -32,7 +33,13 @@ def get_available_balances(key: str, db: Session):
         weekly = db.query(models.Balances).with_entities(func.sum((models.Balances.priceUsdt / models.TokensDailyData.closePrice) - 1).label('weekChange'))\
                 .join(models.SolanaTokens, models.SolanaTokens.symbol == models.Balances.tokenSymbol).join(models.TokensDailyData, models.SolanaTokens.address == models.TokensDailyData.tokenAddress)\
                 .filter(models.Balances.userId == check.id, models.Balances.priceUsdt != None, models.TokensDailyData.date == week_date).all()
-        res = {"data": [row._asdict() for row in res], "weekly": weekly}
+        symbol_list = list()
+        data = list()
+        for row in res:
+            if row.tokenSymbol not in symbol_list:
+                data.append(row._asdict())
+            symbol_list.append(row.tokenSymbol)
+        res = {"data": data, "weekly": weekly}
         return res
     except Exception as e:
         print(e)
@@ -59,15 +66,18 @@ def save_tokens_in_db():
 
 def fetch_solvest_tokens(db):
     try:
+        yesterday_date = date.today() - timedelta(days=1)
         t = db.query(func.max(models.TokensPriceHistory.timestamp)).scalar_subquery()
-        res = db.query(models.SolvestTokens).with_entities(models.SolvestTokens.id, models.SolvestTokens.symbol.label("solvest_tkn_symbol"), models.SolvestTokens.name.label("solvest_tkn_name"), models.SolvestTokens.latestPrice.label("solvest_tkn_price"), models.UnderlyingTokens.symbol.label("under_tkn_symbol"), models.UnderlyingTokens.name.label("under_tkn_name"), models.UnderlyingTokens.weight.label("under_tkn_weight"), models.TokensPriceHistory.price.label("under_tkn_price"))\
+        t2 = db.query(func.max(models.SolvestTokensHistory.timestamp)).filter(cast(models.SolvestTokensHistory.timestamp, DATE) == yesterday_date).scalar_subquery()
+        res = db.query(models.SolvestTokens).with_entities(models.SolvestTokens.id, models.SolvestTokens.symbol.label("solvest_tkn_symbol"), models.SolvestTokens.name.label("solvest_tkn_name"), models.SolvestTokens.latestPrice.label("solvest_tkn_price"), models.UnderlyingTokens.symbol.label("under_tkn_symbol"), models.UnderlyingTokens.name.label("under_tkn_name"), models.UnderlyingTokens.weight.label("under_tkn_weight"), models.TokensPriceHistory.price.label("under_tkn_price"), ((models.SolvestTokens.latestPrice / models.SolvestTokensHistory.price) - 1).label("dayChange"))\
             .join(models.UnderlyingTokens, models.UnderlyingTokens.parentToken == models.SolvestTokens.id)\
             .join(models.TokensPriceHistory, models.TokensPriceHistory.address == models.UnderlyingTokens.address)\
-            .filter(models.TokensPriceHistory.timestamp == t).all()
+            .join(models.SolvestTokensHistory, models.SolvestTokensHistory.symbol == models.SolvestTokens.symbol)\
+            .filter(models.TokensPriceHistory.timestamp == t, models.SolvestTokensHistory.timestamp == t2).all()
         response = dict()
         for row in res:
             if row.solvest_tkn_symbol not in response:
-                response[row.solvest_tkn_symbol] = {"id": row.id, "price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}}]}
+                response[row.solvest_tkn_symbol] = {"id": row.id, "price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "dayChange": row.dayChange, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}}]}
             else:
                 response[row.solvest_tkn_symbol]["underlyingTokens"].append({row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}})
         return response
@@ -77,15 +87,18 @@ def fetch_solvest_tokens(db):
 
 def fetch_index_tokens(db):
     try:
+        yesterday_date = date.today() - timedelta(days=1)
         t = db.query(func.max(models.TokensPriceHistory.timestamp)).scalar_subquery()
-        res = db.query(models.IndexTokens).with_entities(models.IndexTokens.id, models.IndexTokens.symbol.label("solvest_tkn_symbol"), models.IndexTokens.name.label("solvest_tkn_name"), models.IndexTokens.latestPrice.label("solvest_tkn_price"), models.IndexUnderlyingTokens.symbol.label("under_tkn_symbol"), models.IndexUnderlyingTokens.name.label("under_tkn_name"), models.IndexUnderlyingTokens.weight.label("under_tkn_weight"), models.TokensPriceHistory.price.label("under_tkn_price"))\
+        t2 = db.query(func.max(models.IndexTokensHistory.timestamp)).filter(cast(models.IndexTokensHistory.timestamp, DATE) == yesterday_date).scalar_subquery()
+        res = db.query(models.IndexTokens).with_entities(models.IndexTokens.id, models.IndexTokens.symbol.label("solvest_tkn_symbol"), models.IndexTokens.name.label("solvest_tkn_name"), models.IndexTokens.latestPrice.label("solvest_tkn_price"), models.IndexUnderlyingTokens.symbol.label("under_tkn_symbol"), models.IndexUnderlyingTokens.name.label("under_tkn_name"), models.IndexUnderlyingTokens.weight.label("under_tkn_weight"), models.TokensPriceHistory.price.label("under_tkn_price"), ((models.IndexTokens.latestPrice / models.IndexTokensHistory.price) - 1).label("dayChange"))\
             .join(models.IndexUnderlyingTokens, models.IndexUnderlyingTokens.parentToken == models.IndexTokens.id)\
             .join(models.TokensPriceHistory, models.TokensPriceHistory.address == models.IndexUnderlyingTokens.address)\
-            .filter(models.TokensPriceHistory.timestamp == t).all()
+            .join(models.IndexTokensHistory, models.IndexTokensHistory.symbol == models.IndexTokens.symbol)\
+            .filter(models.TokensPriceHistory.timestamp == t, models.IndexTokensHistory.timestamp == t2).all()
         response = dict()
         for row in res:
             if row.solvest_tkn_symbol not in response:
-                response[row.solvest_tkn_symbol] = {"id": row.id, "price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}}]}
+                response[row.solvest_tkn_symbol] = {"id": row.id, "price": row.solvest_tkn_price, "name": row.solvest_tkn_name, "dayChange": row.dayChange, "underlyingTokens": [{row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}}]}
             else:
                 response[row.solvest_tkn_symbol]["underlyingTokens"].append({row.under_tkn_symbol: {"name": row.under_tkn_name, "weight": row.under_tkn_weight, "price": row.under_tkn_price}})
         return response
