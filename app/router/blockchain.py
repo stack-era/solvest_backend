@@ -112,7 +112,7 @@ def save_user_stream(streamData: schemas.StreamCreate, db: Session):
             return {"success": False, "message": "User Key not found."}
         elif user_id == False:
             return {"success": False, "message": "Error occured while creating stream."}
-        insertStream = models.UserStreams(userId=user_id, solvestToken=streamData.solvesToken, startTimestamp=datetime.utcnow(), interval=streamData.interval, active=True, quantity=streamData.quantity)
+        insertStream = models.UserStreams(userId=user_id, solvestToken=streamData.solvestToken, startTime=streamData.startTime, interval=streamData.interval, active=True, totalAmount=streamData.totalAmount, endTime=streamData.endTime, investPda=streamData.investPda)
         db.add(insertStream)
         db.commit()
         return {"success": True, "message": "Added stream successfully"}
@@ -128,7 +128,7 @@ def fetch_key_streams(key: str, db: Session):
         elif user_id == False:
             return {"success": False, "message": "Error occured while creating stream."}
         t = db.query(func.max(models.SolvestTokensHistory.timestamp)).scalar_subquery()
-        res = db.query(models.UserStreams).with_entities(models.UserStreams.id, models.UserStreams.startTimestamp, models.UserStreams.stopTimestamp, models.UserStreams.interval, models.UserStreams.active, models.UserStreams.quantity, models.SolvestTokens.name, models.SolvestTokens.symbol, models.SolvestTokensHistory.price)\
+        res = db.query(models.UserStreams).with_entities(models.UserStreams.id, models.UserStreams.startTime, models.UserStreams.endTime, models.UserStreams.interval, models.UserStreams.active, models.UserStreams.totalAmount, models.SolvestTokens.name, models.SolvestTokens.symbol, models.SolvestTokensHistory.price)\
             .join(models.SolvestTokens, models.SolvestTokens.id == models.UserStreams.solvestToken)\
             .join(models.SolvestTokensHistory, models.SolvestTokensHistory.symbol == models.SolvestTokens.symbol).filter(models.UserStreams.userId == user_id, models.SolvestTokensHistory.timestamp == t).all()
         return res
@@ -138,7 +138,7 @@ def fetch_key_streams(key: str, db: Session):
 
 def stop_user_stream(streamId: int, db: Session):
     try:
-        updateData = {"active": False, "stopTimestamp": datetime.utcnow()}
+        updateData = {"active": False, "endTime": datetime.utcnow()}
         db.query(models.UserStreams).filter(models.UserStreams.id == streamId).update(updateData, synchronize_session=False)
         db.commit()
         return {"success": True, "message": "Stream updated successfully"}

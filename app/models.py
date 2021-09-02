@@ -70,11 +70,12 @@ class UserStreams(Base):
     id = Column(Integer, primary_key=True, index=True)
     userId = Column(Integer, ForeignKey(UsersKey.id))
     solvestToken = Column(Integer, ForeignKey(SolvestTokens.id))
-    startTimestamp = Column(TIMESTAMP)
-    stopTimestamp = Column(TIMESTAMP)
-    interval = Column(String)
+    startTime = Column(TIMESTAMP)
+    endTime = Column(TIMESTAMP)
+    interval = Column(Integer)
     active = Column(Boolean)
-    quantity = Column(DECIMAL)
+    totalAmount = Column(DECIMAL)
+    investPda = Column(String)
 
 
 class UserHistoricalPortfolio(Base):
