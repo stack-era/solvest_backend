@@ -191,7 +191,7 @@ def get_user_transactions(publicKey: str, db: Session):
             return {"success": False, "message": "User Key not found."}
         elif userId == False:
             return {"success": False, "message": "Error occured while fetching transaction."}
-        res = db.query(models.UserSolvestTransactions).with_entities(models.UserSolvestTransactions.transactionId, models.UserSolvestTransactions.side, models.UserSolvestTransactions.quantity, models.UserSolvestTransactions.timestamp, models.SolvestTokens.name, models.SolvestTokens.symbol, models.UserSolvestTransactions.source, models.UserSolvestTransactions.destination)\
+        res = db.query(models.UserSolvestTransactions).with_entities(models.UserSolvestTransactions.transactionId, models.UserSolvestTransactions.side, models.UserSolvestTransactions.quantity, models.UserSolvestTransactions.timestamp, models.SolvestTokens.name, models.SolvestTokens.symbol, models.UserSolvestTransactions.source, models.UserSolvestTransactions.destination, models.SolvestTokens.latestPrice)\
                 .join(models.SolvestTokens, models.SolvestTokens.id == models.UserSolvestTransactions.tokenId).filter(models.UserSolvestTransactions.userId == userId).order_by(models.UserSolvestTransactions.timestamp.desc()).all()
         return res
     except Exception as e:
