@@ -152,17 +152,20 @@ def get_user_historical_portfolio(publicKey: str, db: Session):
         if userId is None:
             return {"success": False, "message": "User Key not found."}
         elif userId == False:
-            return {"success": False, "message": "Error occured while creating stream."}
-        res = db.query(models.UserHistoricalPortfolio).with_entities((cast(models.UserHistoricalPortfolio.timestamp, DATE)).label('date'), models.UserHistoricalPortfolio.balance, models.SolanaTokens.symbol, models.TokensDailyData.closePrice)\
+            return {"success": False, "message": "Error occured while getting portfolio."}
+        res = db.query(models.UserHistoricalPortfolio).with_entities((func.date_trunc('hour', models.UserHistoricalPortfolio.timestamp)).label('date'), (func.avg(models.UserHistoricalPortfolio.balance * models.TokensDailyData.closePrice)).label('amount'), models.SolanaTokens.symbol)\
                 .join(models.SolanaTokens, models.SolanaTokens.address == models.UserHistoricalPortfolio.tokenAddress)\
-                .join(models.TokensDailyData, (models.TokensDailyData.tokenAddress == models.UserHistoricalPortfolio.tokenAddress) & (cast(models.UserHistoricalPortfolio.timestamp, DATE) == models.TokensDailyData.date))\
-                .order_by(models.UserHistoricalPortfolio.timestamp.desc()).filter(models.UserHistoricalPortfolio.userId == userId).all()
+                .join(models.TokensDailyData, (models.TokensDailyData.tokenAddress == models.UserHistoricalPortfolio.tokenAddress) & (cast(text('date'), DATE) == models.TokensDailyData.date))\
+                .group_by(models.UserHistoricalPortfolio.timestamp, models.SolanaTokens.symbol)\
+                .order_by(text('date DESC')).filter(models.UserHistoricalPortfolio.userId == userId).all()
         portfolio_dic = dict()
         for row in res:
             if row['date'] not in portfolio_dic:
-                portfolio_dic[row['date']] = float(row.balance * row.closePrice)
+                portfolio_dic[row['date']] = [row['amount']]
             else:
-                portfolio_dic[row['date']] += float(row.balance * row.closePrice)
+                portfolio_dic[row['date']].append(row['amount'])
+        for time in portfolio_dic:
+            portfolio_dic[time] = sum(portfolio_dic[time]) / len(portfolio_dic[time])
         response = {"success": True, "data": portfolio_dic}
         return response
     except Exception as e:
