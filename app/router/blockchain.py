@@ -4,8 +4,7 @@ from database import *
 from app.solscan_api.solscan_api import Solscan
 from .. import models, schemas
 from datetime import datetime, date, timedelta
-from sqlalchemy import DATE, cast, func, distinct
-from sqlalchemy.dialects import postgresql
+from sqlalchemy import DATE, cast, func, distinct, text
 
 router = APIRouter()
 
@@ -199,6 +198,38 @@ def get_user_transactions(publicKey: str, db: Session):
         print(e)
         return {"success": False, "message": "Error occured while fetching transactions."}
 
+def fetch_tokens_chart_data(symbol, db):
+    try:
+        res = db.query(models.TokensPriceHistory).with_entities(func.avg(models.TokensPriceHistory.price).label('price'), func.date_trunc('hour', models.TokensPriceHistory.timestamp).label('time'))\
+                .filter(models.TokensPriceHistory.symbol == symbol)\
+                .group_by(text('time'))\
+                .order_by(text('time DESC')).all()
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while getting data."}
+
+def fetch_solvest_tokens_chart_data(symbol, db):
+    try:
+        res = db.query(models.SolvestTokensHistory).with_entities(func.avg(models.SolvestTokensHistory.price).label('price'), func.date_trunc('hour', models.SolvestTokensHistory.timestamp).label('time'))\
+                .filter(models.SolvestTokensHistory.symbol == symbol)\
+                .group_by(text('time'))\
+                .order_by(text('time DESC')).all()
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while getting data."}
+
+def fetch_index_tokens_chart_data(symbol, db):
+    try:
+        res = db.query(models.IndexTokensHistory).with_entities(func.avg(models.IndexTokensHistory.price).label('price'), func.date_trunc('hour', models.IndexTokensHistory.timestamp).label('time'))\
+                .filter(models.IndexTokensHistory.symbol == symbol)\
+                .group_by(text('time'))\
+                .order_by(text('time DESC')).all()
+        return res
+    except Exception as e:
+        print(e)
+        return {"success": False, "message": "Error occured while getting data."}
 ########################################################################################################
 ########################################################################################################
 
@@ -301,4 +332,19 @@ async def get_user_transaction(publicKey: str, limit: int = 100, offset: int = 0
 @router.get("/get_index_tokens")
 async def get_index_tokens(db: Session = Depends(get_db)):
     res = fetch_index_tokens(db)
+    return res
+
+@router.get("/tokens_chart_data")
+async def get_tokens_chart_data(symbol: str, db: Session = Depends(get_db)):
+    res = fetch_tokens_chart_data(symbol, db)
+    return res
+
+@router.get("/solvest_tokens_chart_data")
+async def get_solvest_tokens_chart_data(symbol: str, db: Session = Depends(get_db)):
+    res = fetch_solvest_tokens_chart_data(symbol, db)
+    return res
+
+@router.get("/index_tokens_chart_data")
+async def get_index_tokens_chart_data(symbol: str, db: Session = Depends(get_db)):
+    res = fetch_index_tokens_chart_data(symbol, db)
     return res
