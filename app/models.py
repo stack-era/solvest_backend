@@ -111,6 +111,8 @@ class UserSolvestTransactions(Base):
     side = Column(String)
     quantity = Column(DECIMAL)
     timestamp = Column(TIMESTAMP)
+    source = Column(String)
+    destination = Column(String)
 
 
 class IndexTokens(Base):

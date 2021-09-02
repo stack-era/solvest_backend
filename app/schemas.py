@@ -16,6 +16,8 @@ class SaveTransaction(BaseModel):
     transactionId: str
     side: str
     quantity: float
+    source: str
+    destination: str
 
     class Config:
         orm_mode = True
