@@ -1,4 +1,4 @@
-from .db import get_streams, get_last_transaction, add_stream_transaction, get_price_for_stream
+from .db import add_update_balances, add_stream_transaction, get_price_for_stream
 from solana.account import Account
 from solana.instruction import InstructionLayout, encode_data
 from solana.publickey import PublicKey
@@ -71,7 +71,7 @@ def withdraw(pda: str):
     afterWithdrawBalance = res["result"]["meta"]["postBalances"][1]
     withdrawnSol = beforeWithdrawBalance - afterWithdrawBalance
 
-    return fromLamports(withdrawnSol)
+    return fromLamports(withdrawnSol), fromLamports(afterWithdrawBalance)
 
 
 def toLamports(amount: int):
@@ -108,7 +108,7 @@ def start_stream(publicAddress, investPda, stream_id):
         today_date = date.today()
         solPrice, sBucksPrice = get_price_for_stream()
         print(solPrice, sBucksPrice)
-        withdrawnSOL = withdraw(investPda)
+        withdrawnSOL, SOLBal = withdraw(investPda)
         print("withdrawnSOL: {}".format(withdrawnSOL))
         sBucks =  (withdrawnSOL * float(solPrice)) / float(sBucksPrice)
         transfer(publicAddress, sBucks)
@@ -118,6 +118,28 @@ def start_stream(publicAddress, investPda, stream_id):
         }
         print("Adding transaction to DB")
         add_stream_transaction(db_transaction)
+        db_data = [
+            {
+                "userId": 1,
+                "tokenAccount": "9eKUGy2WvE3qQbXNg2qx9Yu6NvKuEQyJmmsRBGRX5Aam",
+                "tokenName": "Wrapped SOL",
+                "tokenSymbol": "SOL",
+                "tokenIcon": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png",
+                "priceUsdt": solPrice,
+                "tokenAmountUI": SOLBal
+            },
+            {
+                "userId": 1,
+                "tokenAccount": "9eKUGy2WvE3qQbXNg2qx9Yu6NvKuEQyJmmsRBGRX5Aams",
+                "tokenName": "SOLBUCKS FUND",
+                "tokenSymbol": "SOLBUCKS",
+                "tokenIcon": None,
+                "priceUsdt": sBucksPrice,
+                "tokenAmountUI": sBucks
+            }
+        ]
+
+        add_update_balances(db_data)
     except Exception as e:
         print(e)
         return False

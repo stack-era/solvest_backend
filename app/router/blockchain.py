@@ -50,9 +50,10 @@ def update_balances(key: str, db: Session):
         check = db.query(models.UsersKey).filter(models.UsersKey.publicKey == key).first()
         if not check:
             return {"success": False, "message": "Key does not exist in database, please add."}
-        obj = Solscan(key)
-        res = obj.update_balances_in_db(check.id)
-        return res
+        # obj = Solscan(key)
+        # res = obj.update_balances_in_db(check.id)
+        # return res
+        return {"success": True, "message": "Updated"}
     except Exception as e:
         print(e)
         return {"success": False, "message": "Error occured while updating balances in database."}
