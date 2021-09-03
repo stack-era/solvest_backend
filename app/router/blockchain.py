@@ -240,6 +240,8 @@ def fetch_index_tokens_chart_data(symbol, db):
 
 @router.get("/get_key_balances")
 async def get_key_balances(key: str, db: Session = Depends(get_db)):
+    # TODO : DELETE
+    key = "Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT"
     res = get_available_balances(key, db)
     return res
 
@@ -251,6 +253,8 @@ async def update_balances_in_db(key: str, db: Session = Depends(get_db)):
 @router.get("/get_sol_balance")
 async def get_sol_balance(key: str):
     try:
+        # TODO : DELETE
+        key = "Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT"
         obj = Solscan(key)
         res = obj.get_solana_balance()
         return res
@@ -286,6 +290,8 @@ async def get_solvest_tokens(db: Session = Depends(get_db)):
 @router.get("/get_token_transactions")
 async def get_token_transactions(address: str, limit: int = 100, offset: int = 0):
     try:
+        # TODO : DELETE
+        address = "Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT"
         obj = Solscan()
         res = obj.get_token_transactions(address, limit, offset)
         return res
@@ -310,23 +316,28 @@ async def stop_stream(streamId: int, db: Session = Depends(get_db)):
 
 @router.get("/user_historical_portfolio")
 async def user_historical_portfolio(publicKey: str, db: Session = Depends(get_db)):
+    # TODO : DELETE
+    publicKey = "Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT"
     res = get_user_historical_portfolio(publicKey, db)
     return res
 
 @router.post("/save_user_transaction")
 async def save_user_transaction(transactionData: schemas.SaveTransaction, db: Session = Depends(get_db)):
-    print(transactionData)
     res = add_user_transaction(transactionData, db)
     return res
 
 @router.get("/get_user_solvest_transactions")
 async def fetch_user_transactions(publicKey: str, db: Session = Depends(get_db)):
+    # TODO : DELETE
+    publicKey = "Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT"
     res = get_user_transactions(publicKey, db)
     return res
 
 @router.get("/get_user_transactions")
 async def get_user_transaction(publicKey: str, limit: int = 100, offset: int = 0):
     try:
+        # TODO : DELETE
+        publicKey = "Bxp8yhH9zNwxyE4UqxP7a7hgJ5xTZfxNNft7YJJ2VRjT"
         obj = Solscan(publicKey)
         res = obj.get_user_transactions(limit, offset)
         return res
