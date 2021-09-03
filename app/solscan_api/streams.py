@@ -113,7 +113,7 @@ def main():
                 if STREAM_INTERVAL[stream.interval] == days_since_last_transaction:
                     # Make next transaction for stream
                     withdraw(stream.investPda)
-                    transfer(stream.publicKey, stream.totalAmount)
+                    transfer(stream.publicKey, int(stream.totalAmount))
                     # Add transaction to DB
                     db_transaction = {
                         "streamId": stream.id,
