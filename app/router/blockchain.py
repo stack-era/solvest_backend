@@ -106,7 +106,7 @@ def fetch_index_tokens(db):
         print(e)
         return {"success": False, "message": "Error occured while fetching tokens."}
 
-def save_user_stream(streamData: schemas.StreamCreate, db: Session):
+def save_user_stream(streamData: schemas.StreamCreate, db: Session, background_tasks: BackgroundTasks):
     try:
         user_id = get_user_id(streamData.publicAddress, db)
         if user_id is None:
@@ -116,7 +116,7 @@ def save_user_stream(streamData: schemas.StreamCreate, db: Session):
         insertStream = models.UserStreams(userId=user_id, solvestToken=1, startTime=streamData.startTime, interval=streamData.interval, active=True, totalAmount=streamData.totalAmount, endTime=streamData.endTime, investPda=streamData.investPda)
         db.add(insertStream)
         db.commit()
-        start_stream(streamData.publicAddress, streamData.investPda, insertStream.id)
+        background_tasks.add_task(start_stream, streamData.publicAddress, streamData.investPda, insertStream.id)
         return {"success": True, "message": "Added stream successfully"}
     except Exception as e:
         print(e)
@@ -294,8 +294,8 @@ async def get_token_transactions(address: str, limit: int = 100, offset: int = 0
         return {"success": False, "message": "Error occured while saving tokens"}
 
 @router.post("/save_stream")
-async def save_stream(streamData: schemas.StreamCreate, db: Session = Depends(get_db)):
-    res = save_user_stream(streamData, db)
+async def save_stream(streamData: schemas.StreamCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    res = save_user_stream(streamData, db, background_tasks)
     return res
 
 @router.get("/get_streams")
