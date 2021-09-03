@@ -150,6 +150,26 @@ class IndexTokensHistory(Base):
     price = Column(DECIMAL)
 
 
+class UserStreams(Base):
+    __tablename__ = "userStreams"
+    id = Column(Integer, primary_key=True, index=True)
+    userId = Column(Integer, ForeignKey(UsersKey.id))
+    solvestToken = Column(Integer, ForeignKey(SolvestTokens.id))
+    startTime = Column(TIMESTAMP)
+    endTime = Column(TIMESTAMP)
+    interval = Column(Integer)
+    active = Column(Boolean)
+    totalAmount = Column(DECIMAL)
+    investPda = Column(String)
+
+
+class UsersStreamTransactions(Base):
+    __tablename__ = 'usersStreamTransactions'
+    id = Column(Integer, primary_key=True, index=True)
+    streamId = Column(Integer, ForeignKey(UserStreams.id))
+    transactionTime = Column(DATE)
+
+
 def add_update_balances(rows: list):
     try:
         db = SessionLocal()
@@ -317,6 +337,37 @@ def get_all_user_id():
         db = SessionLocal()
         res = db.query(UsersKey).all()
         return res
+    except Exception as e:
+        print(e)
+        return False
+
+def get_streams():
+    try:
+        db = SessionLocal()
+        res = db.query(UserStreams).with_entities(UserStreams.id, UserStreams.solvestToken, UserStreams.endTime, UserStreams.interval, UserStreams.investPda, UserStreams.totalAmount, UsersKey.publicKey, SolvestTokens.symbol)\
+                .join(UsersKey, UsersKey.id == UserStreams.userId)\
+                .join(SolvestTokens, SolvestTokens.id == UserStreams.solvestToken)\
+                .filter(UserStreams.active).all()
+        return res
+    except Exception as e:
+        print(e)
+        return False
+
+def get_last_transaction(stream_id):
+    try:
+        db = SessionLocal()
+        res = db.query(UsersStreamTransactions).filter(UsersStreamTransactions.id == stream_id).order_by(UsersStreamTransactions.transactionTime.desc()).first()
+        return res
+    except Exception as e:
+        print(e)
+        return False
+
+def add_stream_transaction(transaction):
+    try:
+        db = SessionLocal()
+        insertRow = UsersStreamTransactions(streamId = transaction['streamId'], transactionTime = transaction['date'])
+        db.add(insertRow)
+        db.commit()
     except Exception as e:
         print(e)
         return False

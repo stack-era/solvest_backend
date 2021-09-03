@@ -142,3 +142,10 @@ class IndexTokensHistory(Base):
     symbol = Column(String, ForeignKey(IndexTokens.symbol))
     timestamp = Column(TIMESTAMP)
     price = Column(DECIMAL)
+
+
+class UsersStreamTransactions(Base):
+    __tablename__ = 'usersStreamTransactions'
+    id = Column(Integer, primary_key=True, index=True)
+    streamId = Column(Integer, ForeignKey(UserStreams.id))
+    transactionTime = Column(DATE)
