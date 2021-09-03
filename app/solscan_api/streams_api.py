@@ -36,6 +36,7 @@ def fromLamports(amount: int):
     return amount / 1000_000_000
 
 def withdraw(pda: str):
+    print(pda)
     transfer_layout = InstructionLayout(idx=1, fmt="Q")
     data = encode_data(transfer_layout, 0)
 
@@ -66,6 +67,7 @@ def withdraw(pda: str):
 
     res = solana_client.send_transaction(
         transaction, withdraw_payer, opts=TxOpts(skip_confirmation=False))
+    print(res)
     beforeWithdrawBalance = res["result"]["meta"]["preBalances"][1]
     afterWithdrawBalance = res["result"]["meta"]["postBalances"][1]
     withdrawnSol = beforeWithdrawBalance - afterWithdrawBalance
