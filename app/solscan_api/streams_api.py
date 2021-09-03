@@ -1,4 +1,4 @@
-from .db import get_streams, get_last_transaction, add_stream_transaction, get_price_for_stream
+from db import get_streams, get_last_transaction, add_stream_transaction, get_price_for_stream
 from solana.account import Account
 from solana.instruction import InstructionLayout, encode_data
 from solana.publickey import PublicKey
@@ -7,6 +7,7 @@ from solana.transaction import AccountMeta, Transaction, TransactionInstruction
 from spl.token.client import Token
 from spl.token.constants import TOKEN_PROGRAM_ID
 from datetime import date
+from solana.rpc.types import TxOpts
 
 payer_priv_key = [6, 208, 225, 71, 116, 134, 41, 154, 131, 204, 187, 35, 134, 162, 183, 234, 150, 55, 183, 3, 200, 108, 200, 63, 255, 114, 18, 97, 64, 187,
                   216, 26, 148, 251, 254, 212, 48, 114, 89, 246, 78, 119, 45, 9, 215, 247, 205, 215, 230, 30, 160, 207, 13, 230, 129, 121, 177, 36, 249, 105, 185, 102, 176, 33]
@@ -64,8 +65,7 @@ def withdraw(pda: str):
     transaction.add_signer(withdraw_payer)
 
     res = solana_client.send_transaction(
-        transaction, withdraw_payer, opts=withdraw_payer(skip_confirmation=False))
-
+        transaction, withdraw_payer, opts=TxOpts(skip_confirmation=False))
     beforeWithdrawBalance = res["result"]["meta"]["preBalances"][1]
     afterWithdrawBalance = res["result"]["meta"]["postBalances"][1]
     withdrawnSol = beforeWithdrawBalance - afterWithdrawBalance
@@ -107,8 +107,9 @@ def start_stream(publicAddress, investPda, stream_id):
         solPrice, sBucksPrice = get_price_for_stream()
         print(solPrice, sBucksPrice)
         withdrawnSOL = withdraw(investPda)
-        sBucks =  (withdrawnSOL * solPrice) / sBucksPrice
-        transfer(publicAddress, sBucks)
+        print("withdrawnSOL: {}".format(withdrawnSOL))
+        sBucks =  (withdrawnSOL * float(solPrice)) / float(sBucksPrice)
+        transfer(publicAddress, int(sBucks))
         db_transaction = {
             "streamId": stream_id,
             "date": today_date
