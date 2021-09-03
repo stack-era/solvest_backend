@@ -5,6 +5,7 @@ from app.solscan_api.solscan_api import Solscan
 from .. import models, schemas
 from datetime import datetime, date, timedelta
 from sqlalchemy import DATE, cast, func, distinct, text
+from app.solscan_api.streams_api import start_stream
 
 router = APIRouter()
 
@@ -112,9 +113,10 @@ def save_user_stream(streamData: schemas.StreamCreate, db: Session):
             return {"success": False, "message": "User Key not found."}
         elif user_id == False:
             return {"success": False, "message": "Error occured while creating stream."}
-        insertStream = models.UserStreams(userId=user_id, solvestToken=streamData.solvestToken, startTime=streamData.startTime, interval=streamData.interval, active=True, totalAmount=streamData.totalAmount, endTime=streamData.endTime, investPda=streamData.investPda)
+        insertStream = models.UserStreams(userId=user_id, solvestToken=1, startTime=streamData.startTime, interval=streamData.interval, active=True, totalAmount=streamData.totalAmount, endTime=streamData.endTime, investPda=streamData.investPda)
         db.add(insertStream)
         db.commit()
+        start_stream(streamData.publicAddress, streamData.investPda, insertStream.id)
         return {"success": True, "message": "Added stream successfully"}
     except Exception as e:
         print(e)
@@ -138,7 +140,7 @@ def fetch_key_streams(key: str, db: Session):
 
 def stop_user_stream(streamId: int, db: Session):
     try:
-        updateData = {"active": False, "endTime": datetime.utcnow()}
+        updateData = {"active": False, "endTime": datetime.now().timestamp()}
         db.query(models.UserStreams).filter(models.UserStreams.id == streamId).update(updateData, synchronize_session=False)
         db.commit()
         return {"success": True, "message": "Stream updated successfully"}

@@ -1,13 +1,11 @@
 from pydantic import BaseModel
-from datetime import datetime
 
 class StreamCreate(BaseModel):
     publicAddress: str
-    solvestToken: int
     interval: int
     totalAmount: float
-    startTime: datetime
-    endTime: datetime
+    startTime: int
+    endTime: int
     investPda: str
 
     class Config:
