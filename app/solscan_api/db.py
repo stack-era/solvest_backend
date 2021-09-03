@@ -371,3 +371,13 @@ def add_stream_transaction(transaction):
     except Exception as e:
         print(e)
         return False
+
+def get_price_for_stream():
+    try:
+        db = SessionLocal()
+        solRes = db.query(TokensPriceHistory).with_entities(TokensPriceHistory.price).filter(TokensPriceHistory.symbol == "SOL").order_by(TokensPriceHistory.timestamp.desc()).first()
+        sBucksRes = db.query(SolvestTokens).with_entities(SolvestTokens.latestPrice).filter(SolvestTokens.symbol == "SOLBUCKS").first()
+        return solRes.price, sBucksRes.latestPrice
+    except Exception as e:
+        print(e)
+        return False

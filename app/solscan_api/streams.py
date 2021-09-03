@@ -1,4 +1,4 @@
-from db import get_streams, get_last_transaction, add_stream_transaction
+from db import get_streams, get_last_transaction, add_stream_transaction, get_price_for_stream
 from solana.account import Account
 from solana.instruction import InstructionLayout, encode_data
 from solana.publickey import PublicKey
@@ -31,6 +31,8 @@ STREAM_INTERVAL = {
     2: 30
 }
 
+def fromLamports(amount: int):
+    return amount / 1000_000_000
 
 def withdraw(pda: str):
     transfer_layout = InstructionLayout(idx=1, fmt="Q")
@@ -61,7 +63,15 @@ def withdraw(pda: str):
     transaction.add(instruction)
     transaction.add_signer(withdraw_payer)
 
-    solana_client.send_transaction(transaction, withdraw_payer)
+    res = solana_client.send_transaction(
+        transaction, withdraw_payer, opts=withdraw_payer(skip_confirmation=False))
+
+    beforeWithdrawBalance = res["result"]["meta"]["preBalances"][1]
+    afterWithdrawBalance = res["result"]["meta"]["postBalances"][1]
+    withdrawnSol = beforeWithdrawBalance - afterWithdrawBalance
+
+    return fromLamports(withdrawnSol)
+
 
 def toLamports(amount: int):
     return amount * 1000_000_000
@@ -94,6 +104,8 @@ def transfer(to: str, amount: int):
 def main():
     today_date = date.today()
     streams = get_streams()
+    solPrice, sBucksPrice = get_price_for_stream()
+    print(solPrice, sBucksPrice)
     for stream in streams:
         db_transaction = None
         # Check for endDate
@@ -102,8 +114,9 @@ def main():
             transaction = get_last_transaction(stream.id)
             if transaction is None:
                 # Make first transaction for stream
-                withdraw(stream.investPda)
-                transfer(stream.publicKey, stream.totalAmount)
+                withdrawnSOL = withdraw(stream.investPda)
+                sBucks =  (withdrawnSOL * solPrice) / sBucksPrice
+                transfer(stream.publicKey, sBucks)
                 db_transaction = {
                     "streamId": stream.id,
                     "date": today_date
@@ -112,8 +125,9 @@ def main():
                 days_since_last_transaction = (today_date - transaction.transactionTime).days
                 if STREAM_INTERVAL[stream.interval] == days_since_last_transaction:
                     # Make next transaction for stream
-                    withdraw(stream.investPda)
-                    transfer(stream.publicKey, int(stream.totalAmount))
+                    withdrawnSOL = withdraw(stream.investPda)
+                    sBucks =  (withdrawnSOL * solPrice) / sBucksPrice
+                    transfer(stream.publicKey, sBucks)
                     # Add transaction to DB
                     db_transaction = {
                         "streamId": stream.id,
