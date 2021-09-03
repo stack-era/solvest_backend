@@ -74,7 +74,7 @@ def withdraw(pda: str):
 
 
 def toLamports(amount: int):
-    return amount * 1000_000_000
+    return int(amount * 1000_000_000)
 
 def getTokenAccountKey(publicKey: PublicKey, token: Token):
     res = token.get_accounts(PublicKey(publicKey))
@@ -89,7 +89,7 @@ def getTokenAccountKey(publicKey: PublicKey, token: Token):
 #  2. amount: int
 #      - amount == dollar value of total withdrawn SOL / dollar price of one sBucks token
 #      - suppose we've withdrawn 10$ worth of SOL from user's investPda, we must send 10$ worth of sBucks token to user
-def transfer(to: str, amount: int):
+def transfer(to: str, amount: float):
     token = Token(solana_client, token_pub_key, TOKEN_PROGRAM_ID, transfer_payer)
 
     dest_key = getTokenAccountKey(PublicKey(to), token)
@@ -109,7 +109,7 @@ def start_stream(publicAddress, investPda, stream_id):
         withdrawnSOL = withdraw(investPda)
         print("withdrawnSOL: {}".format(withdrawnSOL))
         sBucks =  (withdrawnSOL * float(solPrice)) / float(sBucksPrice)
-        transfer(publicAddress, int(sBucks))
+        transfer(publicAddress, sBucks)
         db_transaction = {
             "streamId": stream_id,
             "date": today_date
