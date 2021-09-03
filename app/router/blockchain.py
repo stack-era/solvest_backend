@@ -35,10 +35,11 @@ def get_available_balances(key: str, db: Session):
                 .filter(models.Balances.userId == check.id, models.Balances.priceUsdt != None, models.TokensDailyData.date == week_date).all()
 
         solbucks = db.query(models.Balances).with_entities(models.Balances.priceUsdt, models.Balances.tokenName, models.Balances.tokenSymbol, models.Balances.tokenIcon, models.Balances.tokenAmountUI, ((models.Balances.priceUsdt / (models.Balances.priceUsdt * 0.95)) - 1).label('todayChange'))\
-                    .filter(models.Balances.tokenSymbol == "SOLBUCKS").first()
+                    .filter(models.Balances.tokenSymbol == "SOLBUCKS", models.Balances.tokenAmountUI > 0).first()
         symbol_list = list()
         data = list()
-        data.append(solbucks._asdict())
+        if solbucks:
+            data.append(solbucks._asdict())
         for row in res:
             if row.tokenSymbol not in symbol_list:
                 data.append(row._asdict())
