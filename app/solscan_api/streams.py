@@ -97,7 +97,7 @@ def main():
     for stream in streams:
         db_transaction = None
         # Check for endDate
-        if stream.endTime.date() > today_date:
+        if stream.endTime.date() > today_date and stream.tokenSymbol == "SOLBUCKS":
             # Fetch last transaction date of stream
             transaction = get_last_transaction(stream.id)
             if transaction is None:
